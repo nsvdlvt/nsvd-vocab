@@ -53,10 +53,14 @@ export default function NewPage() {
     show: boolean
     type: "success" | "error"
     message: string
+
+    redirect?: boolean
+
   }>({
     show: false,
     type: "success",
     message: "",
+    redirect: false,
   })
   const [invalidIndexes, setInvalidIndexes] =
     useState<number[]>([])
@@ -278,6 +282,7 @@ export default function NewPage() {
         show: true,
         type: "success",
         message: "Đã lưu bộ từ 😎🔥",
+        redirect: true,
       })
 
       // reset
@@ -311,8 +316,8 @@ export default function NewPage() {
     setClosing(true)
 
     setTimeout(() => {
-      const isSuccess =
-        popup.type === "success"
+      const shouldRedirect =
+        popup.redirect
 
       setPopup({
         ...popup,
@@ -321,7 +326,7 @@ export default function NewPage() {
 
       setClosing(false)
 
-      if (isSuccess) {
+      if (shouldRedirect) {
         router.push("/folders")
       }
 
@@ -592,6 +597,7 @@ từ vựng	phiên âm	loại từ	nghĩa tiếng Việt	ví dụ tiếng Anh	sy
                       type: "success",
                       message:
                         "Import thành công 😎🔥",
+                      redirect: false,
                     })
                   }}
                   className="flex-1 bg-blue-600 hover:bg-blue-700 transition text-white py-4 rounded-2xl font-black"

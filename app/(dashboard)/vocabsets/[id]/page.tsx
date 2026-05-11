@@ -1,7 +1,15 @@
 "use client"
 
 import { useEffect, useState } from "react"
+import { useRouter } from "next/navigation"
 import { supabase } from "@/lib/supabase"
+import {
+  Layers3,
+  BookOpen,
+  PenSquare,
+  Headphones,
+  ClipboardCheck,
+} from "lucide-react"
 
 type WordType = {
   id: string
@@ -23,6 +31,7 @@ export default function SetPage({
     id: string
   }>
 }) {
+  const router = useRouter()
   const { id } = use(params)
   const [words, setWords] =
     useState<WordType[]>([])
@@ -81,7 +90,108 @@ export default function SetPage({
           {title}
         </h1>
       </div>
+      {/* LEARNING MODES */}
+      <div className="mb-10">
 
+        <h2 className="text-3xl font-black mb-5">
+          Chế độ học 😎🔥
+        </h2>
+
+        <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
+
+          {/* FLASHCARD */}
+          <button
+            onClick={() =>
+              router.push(
+                `/flashcard/${id}`
+              )
+            }
+            className="bg-white border border-gray-100 hover:-translate-y-1 hover:shadow-xl transition-all rounded-[30px] p-5 text-left"
+          >
+            
+            <div className="w-14 h-14 rounded-2xl bg-blue-50 flex items-center justify-center mb-4">
+  <Layers3 className="w-7 h-7 text-blue-600" />
+</div>
+
+            <h3 className="font-black text-lg">
+              Flashcard
+            </h3>
+
+            <p className="text-gray-500 text-sm mt-1">
+              Lật thẻ học từ
+            </p>
+          </button>
+
+          {/* LEARN */}
+          <button
+            className="bg-white border border-gray-100 hover:-translate-y-1 hover:shadow-xl transition-all rounded-[30px] p-5 text-left"
+          >
+            <div className="w-14 h-14 rounded-2xl bg-blue-50 flex items-center justify-center mb-4">
+  <BookOpen className="w-7 h-7 text-blue-600" />
+</div>
+
+            <h3 className="font-black text-lg">
+              Học
+            </h3>
+
+            <p className="text-gray-500 text-sm mt-1">
+              Học từng bước
+            </p>
+          </button>
+
+          {/* FILL */}
+          <button
+            className="bg-white border border-gray-100 hover:-translate-y-1 hover:shadow-xl transition-all rounded-[30px] p-5 text-left"
+          >
+            <div className="w-14 h-14 rounded-2xl bg-blue-50 flex items-center justify-center mb-4">
+  <PenSquare className="w-7 h-7 text-blue-600" />
+</div>
+
+            <h3 className="font-black text-lg">
+              Điền từ
+            </h3>
+
+            <p className="text-gray-500 text-sm mt-1">
+              Điền từ còn thiếu
+            </p>
+          </button>
+
+          {/* LISTEN */}
+          <button
+            className="bg-white border border-gray-100 hover:-translate-y-1 hover:shadow-xl transition-all rounded-[30px] p-5 text-left"
+          >
+            <div className="w-14 h-14 rounded-2xl bg-blue-50 flex items-center justify-center mb-4">
+  <Headphones className="w-7 h-7 text-blue-600" />
+</div>
+
+            <h3 className="font-black text-lg">
+              Nghe chép
+            </h3>
+
+            <p className="text-gray-500 text-sm mt-1">
+              Nghe và gõ lại
+            </p>
+          </button>
+
+          {/* TEST */}
+          <button
+            className="bg-white border border-gray-100 hover:-translate-y-1 hover:shadow-xl transition-all rounded-[30px] p-5 text-left"
+          >
+            <div className="w-14 h-14 rounded-2xl bg-blue-50 flex items-center justify-center mb-4">
+  <ClipboardCheck className="w-7 h-7 text-blue-600" />
+</div>
+
+            <h3 className="font-black text-lg">
+              Kiểm tra
+            </h3>
+
+            <p className="text-gray-500 text-sm mt-1">
+              Test tổng hợp
+            </p>
+          </button>
+
+        </div>
+      </div>
       {/* WORDS */}
       <div className="space-y-6">
 

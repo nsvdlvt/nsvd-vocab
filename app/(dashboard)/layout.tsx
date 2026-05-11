@@ -158,7 +158,7 @@ if (loading) {
                 </h1>
 
                 <p className="text-sm text-gray-500">
-                AI Vocabulary Platform
+                Vocabulary Platform
                 </p>
             </div>
             </div>
