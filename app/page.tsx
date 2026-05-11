@@ -10,7 +10,11 @@ export default function LandingPage() {
         <div className="max-w-7xl mx-auto px-5 md:px-8 h-16 flex items-center justify-between">
           {/* LOGO */}
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-blue-500 to-cyan-400" />
+            <img
+              src="/logo.png"
+              alt="lgo"
+              className="w-12 h-12 rounded-2xl object-cover"
+            />
             <h1 className="font-black text-xl">NSVD Vocab</h1>
           </div>
 
