@@ -246,7 +246,7 @@ if (loading) {
               className="w-full bg-red-500 hover:bg-red-600 transition text-white py-4 rounded-2xl font-black flex items-center justify-center gap-2"
             >
               <LogOut size={20} />
-              Logout
+              Đăng xuất
             </button>
           </div>
         </div>
