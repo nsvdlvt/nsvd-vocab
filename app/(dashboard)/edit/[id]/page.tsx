@@ -32,6 +32,8 @@ export default function EditPage({
 
     const [icon, setIcon] =
         useState("📘")
+    const [isPublic, setIsPublic] =
+        useState(false)
     const [saving, setSaving] = useState(false)
     const [showImport, setShowImport] =
         useState(false)
@@ -73,8 +75,9 @@ export default function EditPage({
     const [closing, setClosing] =
         useState(false)
     const [originalData, setOriginalData] =
-    useState<string | null>(null)
+        useState<string | null>(null)
     const currentData = JSON.stringify({
+        isPublic,
         title,
         tag,
         icon,
@@ -82,38 +85,11 @@ export default function EditPage({
     })
 
     const hasChanges =
-    originalData !== null &&
-    currentData !== originalData
+        originalData !== null &&
+        currentData !== originalData
     useEffect(() => {
         fetchSet()
     }, [id])
-    useEffect(() => {
-        
-        const handleBeforeUnload = (
-            e: BeforeUnloadEvent
-        ) => {
-            
-            if (!hasChanges)
-
-                return
-
-            e.preventDefault()
-
-            e.returnValue = ""
-        }
-
-        window.addEventListener(
-            "beforeunload",
-            handleBeforeUnload
-        )
-
-        return () =>
-            window.removeEventListener(
-                "beforeunload",
-                handleBeforeUnload
-            )
-
-    }, [hasChanges])
     const fetchSet = async () => {
 
         // SET INFO
@@ -128,6 +104,9 @@ export default function EditPage({
             setTitle(setData.title)
             setTag(setData.tag || "")
             setIcon(setData.icon || "📘")
+            setIsPublic(
+                setData.is_public || false
+            )
         }
 
         // WORDS
@@ -150,6 +129,8 @@ export default function EditPage({
                 }))
             )
             const snapshot = JSON.stringify({
+                isPublic:
+                    setData?.is_public || false,
                 title: setData?.title || "",
                 tag: setData?.tag || "",
                 icon: setData?.icon || "📘",
@@ -284,6 +265,7 @@ export default function EditPage({
                         title,
                         tag,
                         icon,
+                        is_public: isPublic,
                     })
                     .eq("id", id)
 
@@ -354,14 +336,6 @@ export default function EditPage({
 
         setSaving(false)
     }
-    const confirmDiscard = () => {
-                if (!hasChanges)
-                    return true
-
-                return confirm(
-                    "Bạn có muốn bỏ các thay đổi chưa lưu?"
-                )
-            }
     const closePopup = () => {
         setClosing(true)
 
@@ -375,14 +349,9 @@ export default function EditPage({
             })
 
             setClosing(false)
-
             if (isSuccess) {
-
-    if (!confirmDiscard())
-        return
-
-    router.push("/folders")
-}
+                router.push("/folders")
+            }
 
         }, 250)
     }
@@ -685,7 +654,7 @@ từ vựng	phiên âm	loại từ	nghĩa tiếng Việt	ví dụ tiếng Anh	sy
                     </h1>
                 </div>
 
-                <div className="flex flex-wrap gap-3">
+                <div className="flex flex-wrap items-center gap-3">
 
                     <button
                         onClick={() =>
@@ -695,6 +664,33 @@ từ vựng	phiên âm	loại từ	nghĩa tiếng Việt	ví dụ tiếng Anh	sy
                     >
                         ✨ Thêm từ vựng nhanh
                     </button>
+                    {/* PUBLIC SWITCH */}
+                    <div className="flex items-center gap-3 bg-white border border-gray-200 px-4 py-2 rounded-2xl shadow-sm">
+
+                        <span className="font-bold text-sm min-w-[105px]">
+                            {isPublic
+                                ? "🌍 Công khai"
+                                : "🔒 Riêng tư"}
+                        </span>
+
+                        <button
+                            onClick={() =>
+                                setIsPublic(!isPublic)
+                            }
+                            className={`w-14 h-7 rounded-full transition relative ${isPublic
+                                ? "bg-blue-600"
+                                : "bg-gray-300"
+                                }`}
+                        >
+                            <div
+                                className={`absolute top-[2px] w-6 h-6 rounded-full bg-white shadow-md transition-all duration-300 ease-out ${isPublic
+                                    ? "left-7"
+                                    : "left-1"
+                                    }`}
+                            />
+                        </button>
+
+                    </div>
 
                     <button
                         disabled={!hasWords}

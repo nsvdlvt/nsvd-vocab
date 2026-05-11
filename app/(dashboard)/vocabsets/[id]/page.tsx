@@ -11,6 +11,7 @@ type WordType = {
   word_type: string
   example: string
   synonyms: string
+  audio_url: string
 }
 
 import { use } from "react"

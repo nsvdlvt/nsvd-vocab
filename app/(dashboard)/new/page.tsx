@@ -21,6 +21,8 @@ export default function NewPage() {
 
   const [icon, setIcon] =
     useState("📘")
+  const [isPublic, setIsPublic] =
+    useState(false)
   const [saving, setSaving] = useState(false)
   const [showImport, setShowImport] =
     useState(false)
@@ -155,8 +157,48 @@ export default function NewPage() {
       setInvalidIndexes([])
       // lọc từ hợp lệ
       const validWords = words.filter(
+
         (w) => w.word && w.meaning
       )
+      const wordsWithAudio =
+        await Promise.all(
+
+          validWords.map(
+            async (word) => {
+
+              try {
+
+                const res =
+                  await fetch(
+                    `https://api.dictionaryapi.dev/api/v2/entries/en/${word.word}`
+                  )
+
+                const data =
+                  await res.json()
+
+                const audio =
+                  data?.[0]
+                    ?.phonetics
+                    ?.find(
+                      (p: any) =>
+                        p.audio
+                    )?.audio || ""
+
+                return {
+                  ...word,
+                  audio_url: audio,
+                }
+
+              } catch {
+
+                return {
+                  ...word,
+                  audio_url: "",
+                }
+              }
+            }
+          )
+        )
 
       if (validWords.length === 0) {
         setPopup({
@@ -180,6 +222,7 @@ export default function NewPage() {
           title,
           tag,
           icon,
+          is_public: isPublic,
           user_id: user?.id,
         })
         .select()
@@ -204,9 +247,10 @@ export default function NewPage() {
         await supabase
           .from("vocab_words")
           .insert(
-            validWords.map((word) => ({
+            wordsWithAudio.map((word) => ({
               set_id: setData.id,
-
+              audio_url:
+                word.audio_url,
               word: word.word,
               meaning: word.meaning,
               ipa: word.ipa,
@@ -263,26 +307,26 @@ export default function NewPage() {
 
     setSaving(false)
   }
-const closePopup = () => {
-  setClosing(true)
+  const closePopup = () => {
+    setClosing(true)
 
-  setTimeout(() => {
-    const isSuccess =
-      popup.type === "success"
+    setTimeout(() => {
+      const isSuccess =
+        popup.type === "success"
 
-    setPopup({
-      ...popup,
-      show: false,
-    })
+      setPopup({
+        ...popup,
+        show: false,
+      })
 
-    setClosing(false)
+      setClosing(false)
 
-    if (isSuccess) {
-      router.push("/folders")
-    }
+      if (isSuccess) {
+        router.push("/folders")
+      }
 
-  }, 250)
-}
+    }, 250)
+  }
   return (
     <section className="p-5 md:p-8 pb-28 lg:pb-8">
       {/* POPUP */}
@@ -582,7 +626,7 @@ từ vựng	phiên âm	loại từ	nghĩa tiếng Việt	ví dụ tiếng Anh	sy
           </h1>
         </div>
 
-        <div className="flex flex-wrap gap-3">
+        <div className="flex flex-wrap items-center gap-3">
 
           <button
             onClick={() =>
@@ -592,7 +636,33 @@ từ vựng	phiên âm	loại từ	nghĩa tiếng Việt	ví dụ tiếng Anh	sy
           >
             ✨ Thêm từ vựng nhanh
           </button>
+          {/* PUBLIC SWITCH */}
+          <div className="flex items-center gap-3 bg-white border border-gray-200 px-4 py-2 rounded-2xl shadow-sm">
 
+            <span className="font-bold text-sm min-w-[105px]">
+              {isPublic
+                ? "🌍 Công khai"
+                : "🔒 Riêng tư"}
+            </span>
+
+            <button
+              onClick={() =>
+                setIsPublic(!isPublic)
+              }
+              className={`w-14 h-7 rounded-full transition relative ${isPublic
+                ? "bg-blue-600"
+                : "bg-gray-300"
+                }`}
+            >
+              <div
+                className={`absolute top-[2px] w-6 h-6 rounded-full bg-white shadow-md transition-all duration-300 ease-out ${isPublic
+                  ? "left-7"
+                  : "left-1"
+                  }`}
+              />
+            </button>
+
+          </div>
           <button
             disabled={!hasWords}
             onClick={() => {
@@ -663,26 +733,26 @@ từ vựng	phiên âm	loại từ	nghĩa tiếng Việt	ví dụ tiếng Anh	sy
           </p>
           <div className="flex items-center gap-4 mb-5">
 
-  <div className="w-20 h-20 rounded-3xl bg-[#f5f9ff] flex items-center justify-center text-5xl border border-gray-200">
-    {icon}
-  </div>
+            <div className="w-20 h-20 rounded-3xl bg-[#f5f9ff] flex items-center justify-center text-5xl border border-gray-200">
+              {icon}
+            </div>
 
-  <div className="flex-1">
-    <p className="text-sm text-gray-500 mb-2">
-      Tự nhập emoji/icon
-    </p>
+            <div className="flex-1">
+              <p className="text-sm text-gray-500 mb-2">
+                Tự nhập emoji/icon
+              </p>
 
-    <input
-      value={icon}
-      onChange={(e) =>
-        setIcon(e.target.value)
-      }
-      placeholder="📘"
-      maxLength={2}
-      className="w-full bg-[#f5f9ff] rounded-2xl p-4 outline-none"
-    />
-  </div>
-</div>
+              <input
+                value={icon}
+                onChange={(e) =>
+                  setIcon(e.target.value)
+                }
+                placeholder="📘"
+                maxLength={2}
+                className="w-full bg-[#f5f9ff] rounded-2xl p-4 outline-none"
+              />
+            </div>
+          </div>
         </div>
 
         {/* TAG */}

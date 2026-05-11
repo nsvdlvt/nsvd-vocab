@@ -9,6 +9,7 @@ import {
   Brain,
   Settings,
   Menu,
+  Globe,
   X,
   LogOut,
 } from "lucide-react"
@@ -96,9 +97,9 @@ if (loading) {
       path: "/folders",
     },
     {
-      title: "AI Quiz",
-      icon: Brain,
-      path: "/aiquiz",
+      title: "Community",
+      icon: Globe,
+      path: "/community",
     },
     {
       title: "Cài đặt",
