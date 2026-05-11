@@ -180,13 +180,20 @@ export default function NewPage() {
                 const data =
                   await res.json()
 
-                const audio =
+                let audio =
                   data?.[0]
                     ?.phonetics
                     ?.find(
                       (p: any) =>
                         p.audio
                     )?.audio || ""
+
+                if (!audio) {
+
+                  audio =
+                    `https://translate.google.com/translate_tts?ie=UTF-8&q=${encodeURIComponent(word.word)}&tl=en&client=tw-ob`
+
+                }
 
                 return {
                   ...word,

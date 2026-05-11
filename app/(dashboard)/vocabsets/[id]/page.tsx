@@ -117,7 +117,7 @@ export default function SetPage({
               Flashcard
             </h3>
 
-            <p className="text-gray-500 text-sm mt-1">
+            <p className="text-gray-500 text-sm mt-1 line-clamp-2">
               Lật thẻ học từ
             </p>
           </button>
@@ -134,7 +134,7 @@ export default function SetPage({
               Học
             </h3>
 
-            <p className="text-gray-500 text-sm mt-1">
+            <p className="text-gray-500 text-sm mt-1 line-clamp-2">
               Học từng bước
             </p>
           </button>
@@ -151,7 +151,7 @@ export default function SetPage({
               Điền từ
             </h3>
 
-            <p className="text-gray-500 text-sm mt-1">
+            <p className="text-gray-500 text-sm mt-1 line-clamp-2">
               Điền từ còn thiếu
             </p>
           </button>
@@ -168,7 +168,7 @@ export default function SetPage({
               Nghe chép
             </h3>
 
-            <p className="text-gray-500 text-sm mt-1">
+            <p className="text-gray-500 text-sm mt-1 line-clamp-2">
               Nghe và gõ lại
             </p>
           </button>
@@ -185,7 +185,7 @@ export default function SetPage({
               Kiểm tra
             </h3>
 
-            <p className="text-gray-500 text-sm mt-1">
+            <p className="text-gray-500 text-sm mt-1 line-clamp-2">
               Test tổng hợp
             </p>
           </button>
