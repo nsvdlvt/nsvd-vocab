@@ -17,7 +17,11 @@ export default function LoginPage() {
       <div className="w-full max-w-md bg-white rounded-[32px] shadow-xl border border-gray-100 p-8">
         {/* LOGO */}
         <div className="flex flex-col items-center">
-          <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-blue-600 to-cyan-400" />
+          <img
+            src="/logo.png"
+            alt="logo"
+            className="w-12 h-12 rounded-2xl object-cover"
+          />
 
           <h1 className="text-3xl font-black mt-5">NSVD Vocab</h1>
 
@@ -35,7 +39,7 @@ export default function LoginPage() {
         </button>
 
         <p className="text-center text-gray-400 text-sm mt-6">
-          Học từ vựng thông minh bằng SRS 🚀
+          Học từ vựng thông minh bằng hệ thống AI 🚀
         </p>
       </div>
     </main>
