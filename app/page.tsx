@@ -1,8 +1,41 @@
 "use client"
 
 import Link from "next/link"
+import { useEffect, useState } from "react"
+import { useRouter } from "next/navigation"
+import { supabase } from "@/lib/supabase"
 
 export default function LandingPage() {
+  const router = useRouter()
+
+    const [loading, setLoading] =
+      useState(true)
+      useEffect(() => {
+      const checkSession = async () => {
+        const {
+          data: { session },
+        } = await supabase.auth.getSession()
+
+        if (session) {
+          router.push("/home")
+        } else {
+          setLoading(false)
+        }
+      }
+
+      checkSession()
+    }, [])
+    if (loading) {
+      return (
+        <main className="min-h-screen flex items-center justify-center bg-[#f5f9ff]">
+          <div className="flex flex-col items-center">
+            <div className="w-16 h-16 rounded-full border-4 border-blue-100"></div>
+
+            <div className="absolute w-16 h-16 rounded-full border-4 border-transparent border-t-blue-600 animate-spin"></div>
+          </div>
+        </main>
+      )
+    }
   return (
     <main className="min-h-screen bg-[#f5f9ff] text-[#111827] overflow-hidden">
       {/* HEADER */}
