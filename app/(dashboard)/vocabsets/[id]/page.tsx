@@ -86,7 +86,7 @@ export default function SetPage({
           Vocabulary set ✨
         </p>
 
-        <h1 className="text-5xl font-black mt-2">
+        <h1 className="text-4xl md:text-5xl font-black mt-2 leading-none break-words">
           {title}
         </h1>
       </div>
@@ -97,7 +97,7 @@ export default function SetPage({
           Chế độ học 😎🔥
         </h2>
 
-        <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
+        <div className="grid grid-cols-2 lg:grid-cols-5 gap-4">
 
           {/* FLASHCARD */}
           <button
@@ -106,10 +106,10 @@ export default function SetPage({
                 `/flashcard/${id}`
               )
             }
-            className="bg-white border border-gray-100 hover:-translate-y-1 hover:shadow-xl transition-all rounded-[30px] p-5 text-left"
+            className="bg-white border border-gray-100 hover:-translate-y-1 hover:shadow-xl transition-all rounded-[28px] p-4 md:p-5 text-left min-h-[180px]"
           >
             
-            <div className="w-14 h-14 rounded-2xl bg-blue-50 flex items-center justify-center mb-4">
+            <div className="w-12 h-12 md:w-14 md:h-14 rounded-2xl bg-blue-50 flex items-center justify-center mb-4">
   <Layers3 className="w-7 h-7 text-blue-600" />
 </div>
 
@@ -124,13 +124,13 @@ export default function SetPage({
 
           {/* LEARN */}
           <button
-            className="bg-white border border-gray-100 hover:-translate-y-1 hover:shadow-xl transition-all rounded-[30px] p-5 text-left"
+            className="bg-white border border-gray-100 hover:-translate-y-1 hover:shadow-xl transition-all rounded-[28px] p-4 md:p-5 text-left min-h-[180px]"
           >
-            <div className="w-14 h-14 rounded-2xl bg-blue-50 flex items-center justify-center mb-4">
+            <div className="w-12 h-12 md:w-14 md:h-14 rounded-2xl bg-blue-50 flex items-center justify-center mb-4">
   <BookOpen className="w-7 h-7 text-blue-600" />
 </div>
 
-            <h3 className="font-black text-lg">
+            <h3 className="font-black text-base md:text-lg">
               Học
             </h3>
 
@@ -198,7 +198,7 @@ export default function SetPage({
         {words.map((word, index) => (
           <div
             key={word.id}
-            className="bg-white rounded-[40px] border border-gray-100 shadow-sm p-6 md:p-8"
+            className="bg-white rounded-[28px] md:rounded-[40px] border border-gray-100 shadow-sm p-6 md:p-8"
           >
 
             {/* TOP */}
@@ -208,7 +208,7 @@ export default function SetPage({
                 {index + 1}
               </div>
 
-              <h2 className="text-3xl font-black">
+              <h2 className="text-2xl md:text-3xl font-black">
                 {word.word}
               </h2>
             </div>
