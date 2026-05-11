@@ -1,22 +1,43 @@
 "use client"
 
 import { useState } from "react"
-import { supabase } from "@/lib/supabase"
+
+type WordType = {
+  word: string
+  meaning: string
+  ipa: string
+  type: string
+  example: string
+  synonyms: string
+}
 
 export default function NewPage() {
   const [title, setTitle] = useState("")
   const [saving, setSaving] = useState(false)
 
-  const [words, setWords] = useState([
+  const [activeTab, setActiveTab] = useState<
+    "chat" | "image"
+  >("chat")
+
+  const [aiText, setAiText] = useState("")
+
+  const [imagePreview, setImagePreview] =
+    useState<string | null>(null)
+
+  const [words, setWords] = useState<WordType[]>([
     {
-      english: "",
-      vietnamese: "",
+      word: "",
+      meaning: "",
+      ipa: "",
+      type: "",
+      example: "",
+      synonyms: "",
     },
   ])
 
   const updateWord = (
     index: number,
-    field: "english" | "vietnamese",
+    field: keyof WordType,
     value: string
   ) => {
     const updated = [...words]
@@ -30,8 +51,12 @@ export default function NewPage() {
     setWords([
       ...words,
       {
-        english: "",
-        vietnamese: "",
+        word: "",
+        meaning: "",
+        ipa: "",
+        type: "",
+        example: "",
+        synonyms: "",
       },
     ])
   }
@@ -44,6 +69,52 @@ export default function NewPage() {
     setWords(updated)
   }
 
+  // FAKE AI IMPORT
+  const handleAIImport = async () => {
+    setSaving(true)
+
+    await new Promise((resolve) =>
+      setTimeout(resolve, 1500)
+    )
+
+    setWords([
+      {
+        word: "dissemination",
+        meaning: "sự lan truyền",
+        ipa: "/dɪˌsemɪˈneɪʃən/",
+        type: "noun",
+        example:
+          "The dissemination of fake news spreads rapidly.",
+        synonyms: "spread, distribution",
+      },
+      {
+        word: "archaic",
+        meaning: "cổ xưa",
+        ipa: "/ɑːˈkeɪɪk/",
+        type: "adjective",
+        example:
+          "The book contains many archaic words.",
+        synonyms: "ancient, outdated",
+      },
+    ])
+
+    setSaving(false)
+
+    alert("AI đã import từ 😎")
+  }
+
+  const handleImageUpload = (
+    e: React.ChangeEvent<HTMLInputElement>
+  ) => {
+    const file = e.target.files?.[0]
+
+    if (!file) return
+
+    const imageUrl = URL.createObjectURL(file)
+
+    setImagePreview(imageUrl)
+  }
+
   const saveSet = async () => {
     if (!title) {
       alert("Nhập tên bộ từ 😭")
@@ -52,52 +123,14 @@ export default function NewPage() {
 
     setSaving(true)
 
-    // tạo set
-    const { data: setData, error: setError } =
-      await supabase
-        .from("vocab_sets")
-        .insert({
-          title,
-        })
-        .select()
-        .single()
-
-    if (setError) {
-      console.log(setError)
-
-      alert("Lỗi tạo bộ từ")
-
-      setSaving(false)
-
-      return
-    }
-
-    // lọc word rỗng
-    const validWords = words.filter(
-      (w) => w.english && w.vietnamese
+    await new Promise((resolve) =>
+      setTimeout(resolve, 1000)
     )
 
-    // insert words
-    const { error: wordsError } =
-      await supabase
-        .from("vocab_words")
-        .insert(
-          validWords.map((word) => ({
-            set_id: setData.id,
-            english: word.english,
-            vietnamese: word.vietnamese,
-          }))
-        )
-
-    if (wordsError) {
-      console.log(wordsError)
-
-      alert("Lỗi lưu từ")
-
-      setSaving(false)
-
-      return
-    }
+    console.log({
+      title,
+      words,
+    })
 
     alert("Đã tạo bộ từ 😎")
 
@@ -105,8 +138,12 @@ export default function NewPage() {
 
     setWords([
       {
-        english: "",
-        vietnamese: "",
+        word: "",
+        meaning: "",
+        ipa: "",
+        type: "",
+        example: "",
+        synonyms: "",
       },
     ])
 
@@ -140,21 +177,139 @@ export default function NewPage() {
         />
       </div>
 
+      {/* AI IMPORT */}
+      <div className="bg-gradient-to-br from-blue-600 to-cyan-400 rounded-[40px] p-6 md:p-8 shadow-xl shadow-blue-200 text-white mb-8">
+        <div className="flex items-center gap-3 mb-3">
+          <span className="text-3xl">
+            ✨
+          </span>
+
+          <h2 className="text-3xl font-black">
+            Thêm từ nhanh với AI
+          </h2>
+        </div>
+
+        <p className="text-blue-100 mb-6 text-lg">
+          AI sẽ tự phân tích và điền:
+          nghĩa, IPA, từ loại, ví dụ và từ đồng nghĩa.
+        </p>
+
+        {/* TABS */}
+        <div className="flex gap-3 mb-5 flex-wrap">
+          <button
+            onClick={() => setActiveTab("chat")}
+            className={`font-black px-5 py-3 rounded-2xl transition ${
+              activeTab === "chat"
+                ? "bg-white text-blue-700"
+                : "bg-white/20 hover:bg-white/30"
+            }`}
+          >
+            💬 AI Chat
+          </button>
+
+          <button
+            onClick={() => setActiveTab("image")}
+            className={`font-black px-5 py-3 rounded-2xl transition ${
+              activeTab === "image"
+                ? "bg-white text-blue-700"
+                : "bg-white/20 hover:bg-white/30"
+            }`}
+          >
+            📸 Chụp ảnh
+          </button>
+        </div>
+
+        {/* CHAT */}
+        {activeTab === "chat" && (
+          <div className="bg-white rounded-[32px] p-5">
+            <textarea
+              value={aiText}
+              onChange={(e) =>
+                setAiText(e.target.value)
+              }
+              placeholder="Paste đoạn vocab hoặc text vào đây..."
+              className="w-full min-h-[160px] bg-[#f5f9ff] rounded-2xl p-5 outline-none text-black resize-none"
+            />
+
+            <button
+              onClick={handleAIImport}
+              disabled={saving}
+              className="mt-5 bg-blue-600 hover:bg-blue-700 transition text-white px-6 py-4 rounded-2xl font-black"
+            >
+              {saving
+                ? "AI đang phân tích..."
+                : "✨ Import bằng AI"}
+            </button>
+          </div>
+        )}
+
+        {/* IMAGE */}
+        {activeTab === "image" && (
+          <div className="bg-white rounded-[32px] p-5">
+            <label className="w-full min-h-[260px] border-2 border-dashed border-blue-300 rounded-[32px] flex flex-col items-center justify-center cursor-pointer hover:bg-blue-50 transition overflow-hidden">
+              {!imagePreview ? (
+                <>
+                  <div className="text-6xl mb-5">
+                    📸
+                  </div>
+
+                  <h3 className="text-2xl font-black text-black">
+                    Upload ảnh
+                  </h3>
+
+                  <p className="text-gray-500 mt-2">
+                    PNG, JPG, hoặc chụp ảnh
+                  </p>
+                </>
+              ) : (
+                <img
+                  src={imagePreview}
+                  alt="preview"
+                  className="w-full h-[320px] object-cover rounded-[24px]"
+                />
+              )}
+
+              <input
+                type="file"
+                accept="image/*"
+                className="hidden"
+                onChange={handleImageUpload}
+              />
+            </label>
+
+            <button
+              onClick={handleAIImport}
+              disabled={
+                !imagePreview || saving
+              }
+              className="mt-5 bg-blue-600 hover:bg-blue-700 transition disabled:opacity-50 text-white px-6 py-4 rounded-2xl font-black"
+            >
+              {saving
+                ? "AI đang quét ảnh..."
+                : "✨ Phân tích ảnh bằng AI"}
+            </button>
+          </div>
+        )}
+      </div>
+
       {/* WORDS */}
-      <div className="space-y-5">
+      <div className="space-y-6">
         {words.map((word, index) => (
           <div
             key={index}
-            className="bg-white rounded-[32px] p-6 shadow-sm border border-gray-100"
+            className="bg-white rounded-[40px] p-6 md:p-8 shadow-sm border border-gray-100"
           >
-            <div className="flex items-center justify-between mb-5">
-              <h2 className="text-2xl font-black">
+            {/* TOP */}
+            <div className="flex items-center justify-between mb-8">
+              <h2 className="text-3xl font-black">
                 Từ {index + 1}
               </h2>
 
               {words.length > 1 && (
                 <button
-                  onClick={() => removeRow(index)}
+                  onClick={() =>
+                    removeRow(index)
+                  }
                   className="text-red-500 font-bold"
                 >
                   Xóa
@@ -162,31 +317,84 @@ export default function NewPage() {
               )}
             </div>
 
-            <div className="grid md:grid-cols-2 gap-4">
+            {/* GRID */}
+            <div className="grid md:grid-cols-2 gap-5">
               <input
-                value={word.english}
+                value={word.word}
                 onChange={(e) =>
                   updateWord(
                     index,
-                    "english",
+                    "word",
                     e.target.value
                   )
                 }
-                placeholder="English"
-                className="bg-[#f5f9ff] rounded-2xl p-5 outline-none border border-transparent focus:border-blue-500"
+                placeholder="Word"
+                className="bg-[#f5f9ff] rounded-2xl p-5 outline-none"
               />
 
               <input
-                value={word.vietnamese}
+                value={word.meaning}
                 onChange={(e) =>
                   updateWord(
                     index,
-                    "vietnamese",
+                    "meaning",
                     e.target.value
                   )
                 }
-                placeholder="Tiếng Việt"
-                className="bg-[#f5f9ff] rounded-2xl p-5 outline-none border border-transparent focus:border-blue-500"
+                placeholder="Meaning"
+                className="bg-[#f5f9ff] rounded-2xl p-5 outline-none"
+              />
+
+              <input
+                value={word.ipa}
+                onChange={(e) =>
+                  updateWord(
+                    index,
+                    "ipa",
+                    e.target.value
+                  )
+                }
+                placeholder="IPA"
+                className="bg-[#f5f9ff] rounded-2xl p-5 outline-none"
+              />
+
+              <input
+                value={word.type}
+                onChange={(e) =>
+                  updateWord(
+                    index,
+                    "type",
+                    e.target.value
+                  )
+                }
+                placeholder="Word Type"
+                className="bg-[#f5f9ff] rounded-2xl p-5 outline-none"
+              />
+
+              <textarea
+                value={word.example}
+                onChange={(e) =>
+                  updateWord(
+                    index,
+                    "example",
+                    e.target.value
+                  )
+                }
+                placeholder="Example"
+                className="bg-[#f5f9ff] rounded-2xl p-5 outline-none md:col-span-2 min-h-[120px]"
+              />
+
+              <input
+                value={word.synonyms}
+                onChange={(e) =>
+                  updateWord(
+                    index,
+                    "synonyms",
+                    e.target.value
+                  )
+                }
+                placeholder="Synonyms"
+                className="bg-[#f5f9ff] rounded-2xl p-5 outline-none md:col-span-2"
               />
             </div>
           </div>
@@ -205,7 +413,7 @@ export default function NewPage() {
         <button
           onClick={saveSet}
           disabled={saving}
-          className="bg-blue-600 hover:bg-blue-700 transition text-white px-8 py-4 rounded-2xl font-black disabled:opacity-50"
+          className="bg-blue-600 hover:bg-blue-700 transition text-white px-8 py-4 rounded-2xl font-black"
         >
           {saving
             ? "Đang lưu..."
