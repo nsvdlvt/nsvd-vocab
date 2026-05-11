@@ -2,271 +2,137 @@
 
 import { useEffect, useState } from "react"
 import { useRouter } from "next/navigation"
-import { supabase } from "../../lib/supabase"
+import { supabase } from "@/lib/supabase"
 
 export default function HomePage() {
-
   const router = useRouter()
 
-  const [user, setUser] = useState<any>(null)
+  const [loading, setLoading] = useState(true)
+  const [userName, setUserName] = useState("")
 
   useEffect(() => {
-    async function getUser() {
+    const checkUser = async () => {
       const {
         data: { user },
       } = await supabase.auth.getUser()
 
       if (!user) {
         router.push("/")
-      } else {
-        setUser(user)
+        return
       }
+
+      setUserName(
+        user.user_metadata.full_name ||
+          user.email ||
+          "Người dùng"
+      )
+
+      setLoading(false)
     }
 
-    getUser()
-  }, [])
+    checkUser()
+  }, [router])
 
-  async function logout() {
+  const handleLogout = async () => {
     await supabase.auth.signOut()
+
     router.push("/")
   }
 
-  if (!user) {
+  if (loading) {
     return (
-      <main className="min-h-screen flex items-center justify-center bg-[#f3f7ff]">
-        <p className="text-2xl font-bold">
-          Loading...
-        </p>
+      <main className="min-h-screen flex items-center justify-center">
+        <h1 className="text-2xl font-bold">Loading...</h1>
       </main>
     )
   }
 
   return (
-    <main className="min-h-screen bg-[#f3f7ff] text-zinc-900">
-
-      {/* NAVBAR */}
-      <nav className="w-full border-b border-zinc-200 bg-white/80 backdrop-blur">
-        <div className="max-w-7xl mx-auto px-6 py-5 flex items-center justify-between">
-
+    <main className="min-h-screen bg-[#f5f9ff]">
+      {/* HEADER */}
+      <header className="bg-white border-b border-gray-100 sticky top-0 z-50">
+        <div className="max-w-7xl mx-auto px-5 md:px-8 h-16 flex items-center justify-between">
           <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-blue-600 to-cyan-400" />
 
-            <div className="w-11 h-11 rounded-2xl bg-gradient-to-br from-blue-500 to-cyan-400" />
-
-            <p className="font-black text-2xl">
-              NSVD Vocab
-            </p>
-
+            <h1 className="font-black text-xl">NSVD Vocab</h1>
           </div>
 
-          <div className="flex items-center gap-5">
-
-            <img
-              src={user.user_metadata.avatar_url}
-              className="w-12 h-12 rounded-full"
-            />
-
-            <div className="hidden md:block">
-
-              <p className="font-bold">
-                {user.user_metadata.full_name}
-              </p>
-
-              <p className="text-sm text-zinc-500">
-                {user.email}
-              </p>
-
-            </div>
-
-            <button
-              onClick={logout}
-              className="bg-red-500 hover:bg-red-600 transition text-white px-5 py-3 rounded-2xl font-semibold"
-            >
-              Logout
-            </button>
-
-          </div>
-
+          <button
+            onClick={handleLogout}
+            className="bg-red-500 hover:bg-red-600 transition text-white px-5 py-2 rounded-xl font-bold"
+          >
+            Đăng xuất
+          </button>
         </div>
-      </nav>
+      </header>
 
       {/* CONTENT */}
-      <section className="max-w-7xl mx-auto px-6 py-10">
-
-        {/* GREETING */}
-        <div className="mb-10">
-
-          <p className="text-zinc-500 text-lg mb-3">
-            Welcome back 👋
-          </p>
-
-          <h1 className="text-6xl font-black leading-tight">
-            Ready to continue
-            <br />
-
-            your vocabulary journey?
+      <section className="max-w-7xl mx-auto px-5 md:px-8 py-10">
+        <div className="bg-white rounded-[32px] p-8 shadow-sm border border-gray-100">
+          <h1 className="text-4xl font-black">
+            Xin chào, {userName} 👋
           </h1>
 
-        </div>
+          <p className="text-gray-500 mt-4 text-lg">
+            Chào mừng quay trở lại với NSVD Vocab.
+          </p>
 
-        {/* STATS */}
-        <div className="grid lg:grid-cols-4 gap-6 mb-10">
+          {/* STATS */}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-5 mt-10">
+            <div className="bg-[#f5f9ff] rounded-3xl p-6">
+              <h2 className="text-5xl font-black text-blue-600">77</h2>
 
-          <div className="bg-white rounded-[30px] p-7 shadow-sm border border-zinc-100">
+              <p className="text-gray-500 mt-3">
+                từ đã học hôm nay
+              </p>
+            </div>
 
-            <p className="text-zinc-500 mb-3">
-              Words learned
-            </p>
+            <div className="bg-orange-400 text-white rounded-3xl p-6">
+              <h2 className="text-5xl font-black">17</h2>
 
-            <h2 className="text-5xl font-black">
-              274
-            </h2>
+              <p className="text-orange-100 mt-3">
+                ngày streak
+              </p>
+            </div>
 
+            <div className="bg-violet-500 text-white rounded-3xl p-6">
+              <h2 className="text-5xl font-black">92%</h2>
+
+              <p className="text-violet-100 mt-3">
+                độ ghi nhớ
+              </p>
+            </div>
           </div>
-
-          <div className="bg-orange-400 text-white rounded-[30px] p-7 shadow-sm">
-
-            <p className="opacity-80 mb-3">
-              Learning streak
-            </p>
-
-            <h2 className="text-5xl font-black">
-              17
-            </h2>
-
-          </div>
-
-          <div className="bg-gradient-to-br from-blue-500 to-cyan-400 text-white rounded-[30px] p-7 shadow-sm">
-
-            <p className="opacity-80 mb-3">
-              AI quizzes
-            </p>
-
-            <h2 className="text-5xl font-black">
-              42
-            </h2>
-
-          </div>
-
-          <div className="bg-white rounded-[30px] p-7 shadow-sm border border-zinc-100">
-
-            <p className="text-zinc-500 mb-3">
-              Accuracy
-            </p>
-
-            <h2 className="text-5xl font-black">
-              92%
-            </h2>
-
-          </div>
-
-        </div>
-
-        {/* MAIN GRID */}
-        <div className="grid lg:grid-cols-3 gap-8">
 
           {/* FLASHCARD */}
-          <div className="lg:col-span-2 bg-white rounded-[40px] p-8 shadow-sm border border-zinc-100">
+          <div className="mt-10 bg-gray-50 rounded-[32px] p-8 border border-gray-100">
+            <p className="text-gray-400 text-sm">Flashcard hôm nay</p>
 
-            <div className="flex items-center justify-between mb-8">
+            <h1 className="text-5xl font-black mt-4">
+              dissemination
+            </h1>
 
-              <div>
-                <p className="text-zinc-500 mb-2">
-                  Flashcard of the day
-                </p>
+            <p className="text-xl text-gray-600 mt-4">
+              sự lan truyền
+            </p>
 
-                <h2 className="text-5xl font-black">
-                  dissemination
-                </h2>
-              </div>
-
-              <div className="bg-blue-100 text-blue-700 px-5 py-3 rounded-2xl font-bold">
-                C1
-              </div>
-
-            </div>
-
-            <div className="bg-[#f3f7ff] rounded-[30px] p-10 mb-6">
-
-              <p className="text-3xl font-bold mb-5">
-                sự lan truyền
-              </p>
-
-              <p className="text-zinc-600 text-xl leading-relaxed">
-                The dissemination of information is important
-                in modern education systems.
-              </p>
-
-            </div>
-
-            <div className="flex gap-5">
-
-              <button className="bg-blue-600 hover:bg-blue-700 transition text-white px-7 py-4 rounded-2xl font-bold">
-                Study now
+            <div className="grid grid-cols-3 gap-3 mt-8">
+              <button className="bg-white hover:bg-blue-50 transition rounded-2xl p-4 font-bold border border-gray-100">
+                AI
               </button>
 
-              <button className="bg-white border border-zinc-200 hover:bg-zinc-50 transition px-7 py-4 rounded-2xl font-bold">
-                Generate AI Quiz
+              <button className="bg-white hover:bg-blue-50 transition rounded-2xl p-4 font-bold border border-gray-100">
+                Quiz
               </button>
 
+              <button className="bg-white hover:bg-blue-50 transition rounded-2xl p-4 font-bold border border-gray-100">
+                SRS
+              </button>
             </div>
-
           </div>
-
-          {/* RIGHT SIDE */}
-          <div className="space-y-6">
-
-            <div className="bg-white rounded-[30px] p-7 shadow-sm border border-zinc-100">
-
-              <p className="text-zinc-500 mb-4">
-                Today's progress
-              </p>
-
-              <div className="w-full h-4 bg-zinc-100 rounded-full overflow-hidden mb-4">
-
-                <div className="w-[72%] h-full bg-gradient-to-r from-blue-500 to-cyan-400 rounded-full" />
-
-              </div>
-
-              <p className="font-bold text-lg">
-                72% completed
-              </p>
-
-            </div>
-
-            <div className="bg-white rounded-[30px] p-7 shadow-sm border border-zinc-100">
-
-              <p className="text-zinc-500 mb-5">
-                Quick actions
-              </p>
-
-              <div className="grid grid-cols-2 gap-4">
-
-                <button className="bg-[#f3f7ff] hover:bg-blue-100 transition rounded-2xl p-5 font-bold">
-                  Add word
-                </button>
-
-                <button className="bg-[#f3f7ff] hover:bg-blue-100 transition rounded-2xl p-5 font-bold">
-                  AI quiz
-                </button>
-
-                <button className="bg-[#f3f7ff] hover:bg-blue-100 transition rounded-2xl p-5 font-bold">
-                  Flashcards
-                </button>
-
-                <button className="bg-[#f3f7ff] hover:bg-blue-100 transition rounded-2xl p-5 font-bold">
-                  Progress
-                </button>
-
-              </div>
-
-            </div>
-
-          </div>
-
         </div>
-
       </section>
-
     </main>
   )
 }

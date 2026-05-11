@@ -1,268 +1,222 @@
 "use client"
 
-import { supabase } from "../lib/supabase"
-import { useEffect } from "react"
-import { useRouter } from "next/navigation"
+import Link from "next/link"
 
-export default function Home() {
-
-  const router = useRouter()
-
-  useEffect(() => {
-    async function checkUser() {
-      const {
-        data: { user },
-      } = await supabase.auth.getUser()
-
-      if (user) {
-        router.push("/home")
-      }
-    }
-
-    checkUser()
-  }, [])
-
-  async function loginWithGoogle() {
-    await supabase.auth.signInWithOAuth({
-      provider: "google",
-    })
-  }
-
+export default function LandingPage() {
   return (
-    <main className="min-h-screen bg-[#f3f7ff] text-zinc-900">
-
-      {/* NAVBAR */}
-      <nav className="w-full border-b border-zinc-200 bg-white/80 backdrop-blur">
-        <div className="max-w-7xl mx-auto px-6 py-5 flex items-center justify-between">
-
+    <main className="min-h-screen bg-[#f5f9ff] text-[#111827] overflow-hidden">
+      {/* HEADER */}
+      <header className="fixed top-0 left-0 w-full bg-white/80 backdrop-blur-md border-b border-gray-100 z-50">
+        <div className="max-w-7xl mx-auto px-5 md:px-8 h-16 flex items-center justify-between">
+          {/* LOGO */}
           <div className="flex items-center gap-3">
-            <div className="w-11 h-11 rounded-2xl bg-gradient-to-br from-blue-500 to-cyan-400" />
-
-            <div>
-              <p className="font-bold text-2xl">
-                NSVD Vocab
-              </p>
-            </div>
+            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-blue-500 to-cyan-400" />
+            <h1 className="font-black text-xl">NSVD Vocab</h1>
           </div>
 
-          <div className="hidden md:flex items-center gap-10">
-
-            <button className="relative text-zinc-500 hover:text-zinc-800 transition font-semibold pb-2 after:absolute after:left-0 after:bottom-0 after:h-[3px] after:w-0 hover:after:w-full after:bg-blue-500 after:transition-all">
+          {/* DESKTOP NAV */}
+          <nav className="hidden md:flex items-center gap-10 font-semibold text-gray-500">
+            <a
+              href="#features"
+              className="hover:text-blue-600 border-b-2 border-transparent hover:border-blue-500 pb-1 transition"
+            >
               Tính năng
-            </button>
+            </a>
 
-            <button className="relative text-zinc-500 hover:text-zinc-800 transition font-semibold pb-2 after:absolute after:left-0 after:bottom-0 after:h-[3px] after:w-0 hover:after:w-full after:bg-blue-500 after:transition-all">
+            <a
+              href="#how"
+              className="hover:text-blue-600 border-b-2 border-transparent hover:border-blue-500 pb-1 transition"
+            >
               Cách học
-            </button>
+            </a>
 
-            <button className="relative text-zinc-500 hover:text-zinc-800 transition font-semibold pb-2 after:absolute after:left-0 after:bottom-0 after:h-[3px] after:w-0 hover:after:w-full after:bg-blue-500 after:transition-all">
+            <a
+              href="#review"
+              className="hover:text-blue-600 border-b-2 border-transparent hover:border-blue-500 pb-1 transition"
+            >
               Đánh giá
-            </button>
+            </a>
 
-            <button className="relative text-zinc-500 hover:text-zinc-800 transition font-semibold pb-2 after:absolute after:left-0 after:bottom-0 after:h-[3px] after:w-[0px] hover:after:w-full after:bg-blue-500 after:transition-all">
+            <a
+              href="#faq"
+              className="hover:text-blue-600 border-b-2 border-transparent hover:border-blue-500 pb-1 transition"
+            >
               FAQ
-            </button>
+            </a>
+          </nav>
 
-          </div>
-
-          <div className="flex items-center gap-4">
-
-            <button
-              onClick={() => router.push("/login")}
-              className="font-semibold"
+          {/* ACTIONS */}
+          <div className="flex items-center gap-3">
+            <Link
+              href="/login"
+              className="hidden md:block font-semibold text-gray-700 hover:text-blue-600 transition"
             >
               Đăng nhập
-            </button>
+            </Link>
 
-            <button
-              onClick={loginWithGoogle}
-              className="bg-blue-600 hover:bg-blue-700 transition text-white px-6 py-3 rounded-2xl font-semibold shadow-lg"
+            <Link
+              href="/login"
+              className="bg-blue-600 hover:bg-blue-700 transition text-white font-bold px-5 py-3 rounded-2xl shadow-lg shadow-blue-200 text-sm md:text-base"
             >
               Bắt đầu miễn phí →
-            </button>
-
+            </Link>
           </div>
-
         </div>
-      </nav>
+      </header>
 
       {/* HERO */}
-      <section className="max-w-7xl mx-auto px-6 py-24 grid lg:grid-cols-2 gap-16 items-center">
+      <section className="pt-32 pb-16 px-5 md:px-8">
+        <div className="max-w-7xl mx-auto flex flex-col-reverse lg:flex-row items-center gap-14">
+          {/* LEFT */}
+          <div className="flex-1 text-center lg:text-left">
+            <h1 className="font-black leading-tight text-5xl md:text-6xl lg:text-7xl">
+              Học từ vựng có lộ trình,
+              <br />
+              <span className="bg-gradient-to-r from-blue-600 to-cyan-400 bg-clip-text text-transparent">
+                nhớ lâu và quay lại đều hơn
+              </span>
+            </h1>
 
-        {/* LEFT */}
-        <div>
+            <p className="mt-8 text-lg md:text-xl text-gray-600 leading-relaxed max-w-2xl mx-auto lg:mx-0">
+              Học flashcard, luyện quiz, ôn bằng SRS và theo dõi tiến độ học tập
+              trong một nơi duy nhất.
+            </p>
 
-          <h1 className="text-6xl lg:text-7xl font-black leading-tight mb-8">
-            Học từ vựng có lộ trình,
-            <br />
+            <div className="mt-10 flex flex-col sm:flex-row items-center justify-center lg:justify-start gap-4">
+              <Link
+                href="/login"
+                className="w-full sm:w-auto text-center bg-blue-600 hover:bg-blue-700 transition text-white font-bold px-8 py-4 rounded-2xl shadow-xl shadow-blue-200"
+              >
+                Bắt đầu học miễn phí →
+              </Link>
 
-            <span className="bg-gradient-to-r from-blue-600 via-cyan-500 to-emerald-500 bg-clip-text text-transparent">
-              nhớ lâu và quay lại đều hơn
-            </span>
-          </h1>
+              <button className="w-full sm:w-auto bg-white hover:bg-gray-100 transition border border-gray-200 font-bold px-8 py-4 rounded-2xl">
+                Xem demo
+              </button>
+            </div>
 
-          <p className="text-2xl text-zinc-600 leading-relaxed mb-10">
-            Học flashcard, luyện bằng AI, nhắc ôn bằng SRS
-            và theo dõi tiến trình học trong một nơi duy nhất.
-          </p>
+            {/* STATS */}
+            <div className="mt-14 grid grid-cols-1 sm:grid-cols-3 gap-4">
+              <div className="bg-white rounded-3xl p-6 shadow-sm border border-gray-100">
+                <h3 className="text-3xl font-black text-blue-600">100K+</h3>
+                <p className="text-gray-500 mt-2">lượt học mỗi tháng</p>
+              </div>
 
-          <div className="flex gap-5 mb-14">
+              <div className="bg-white rounded-3xl p-6 shadow-sm border border-gray-100">
+                <h3 className="text-3xl font-black text-cyan-500">6 mode</h3>
+                <p className="text-gray-500 mt-2">flashcard và game học</p>
+              </div>
 
-            <button
-              onClick={loginWithGoogle}
-              className="bg-blue-600 hover:bg-blue-700 transition text-white px-8 py-5 rounded-3xl text-lg font-bold shadow-xl"
-            >
-              Bắt đầu học miễn phí →
-            </button>
-
-            <button className="bg-white border border-zinc-200 hover:bg-zinc-50 transition px-8 py-5 rounded-3xl text-lg font-semibold">
-              Xem demo
-            </button>
-
+              <div className="bg-white rounded-3xl p-6 shadow-sm border border-gray-100">
+                <h3 className="text-3xl font-black text-violet-500">SRS</h3>
+                <p className="text-gray-500 mt-2">ôn tập thông minh</p>
+              </div>
+            </div>
           </div>
 
-          {/* STATS */}
-          <div className="grid grid-cols-3 gap-5">
+          {/* RIGHT */}
+          <div className="flex-1 w-full">
+            <div className="relative w-full max-w-2xl mx-auto">
+              {/* MAIN CARD */}
+              <div className="bg-white rounded-[40px] p-5 md:p-8 shadow-2xl border border-gray-100">
+                {/* TOP */}
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="bg-[#f5f9ff] rounded-3xl p-5">
+                    <p className="text-gray-500 text-sm">Hôm nay</p>
+                    <h2 className="text-5xl font-black mt-2">77</h2>
+                  </div>
 
-            <div className="bg-white rounded-3xl p-6 shadow-sm border border-zinc-100">
+                  <div className="bg-orange-400 text-white rounded-3xl p-5">
+                    <p className="text-orange-100 text-sm">Chuỗi học</p>
+                    <h2 className="text-5xl font-black mt-2">17</h2>
+                  </div>
+                </div>
 
-              <p className="text-4xl font-black mb-2">
-                100K+
-              </p>
+                {/* FLASHCARD */}
+                <div className="mt-5 bg-gray-50 rounded-3xl p-8 border border-gray-100">
+                  <p className="text-gray-400 text-sm">Flashcard</p>
 
-              <p className="text-zinc-500">
-                từ vựng
-              </p>
+                  <h1 className="text-4xl md:text-5xl font-black mt-4 break-words">
+                    dissemination
+                  </h1>
 
+                  <p className="text-gray-600 mt-4 text-xl">sự lan truyền</p>
+                </div>
+
+                {/* BUTTONS */}
+                <div className="grid grid-cols-3 gap-3 mt-5">
+                  <button className="bg-[#f5f9ff] hover:bg-blue-100 transition rounded-2xl p-4 font-bold">
+                    AI
+                  </button>
+
+                  <button className="bg-[#f5f9ff] hover:bg-blue-100 transition rounded-2xl p-4 font-bold">
+                    Quiz
+                  </button>
+
+                  <button className="bg-[#f5f9ff] hover:bg-blue-100 transition rounded-2xl p-4 font-bold">
+                    SRS
+                  </button>
+                </div>
+              </div>
+
+              {/* FLOATING CARDS */}
+              <div className="hidden md:flex absolute -top-6 -left-6 bg-white rounded-3xl px-6 py-4 shadow-xl items-center gap-3 border border-gray-100">
+                <div className="w-10 h-10 rounded-full bg-green-100" />
+
+                <div>
+                  <h3 className="font-black text-xl">100.000+</h3>
+                  <p className="text-gray-500 text-sm">người học</p>
+                </div>
+              </div>
+
+              <div className="hidden md:block absolute -bottom-6 -right-6 bg-white rounded-3xl px-6 py-4 shadow-xl border border-gray-100">
+                <h3 className="font-black text-xl">SRS + roadmap</h3>
+                <p className="text-gray-500">không học rời rạc</p>
+              </div>
             </div>
-
-            <div className="bg-white rounded-3xl p-6 shadow-sm border border-zinc-100">
-
-              <p className="text-4xl font-black mb-2">
-                AI
-              </p>
-
-              <p className="text-zinc-500">
-                tạo ví dụ
-              </p>
-
-            </div>
-
-            <div className="bg-white rounded-3xl p-6 shadow-sm border border-zinc-100">
-
-              <p className="text-4xl font-black mb-2">
-                SRS
-              </p>
-
-              <p className="text-zinc-500">
-                nhắc ôn thông minh
-              </p>
-
-            </div>
-
           </div>
-
         </div>
-
-        {/* RIGHT */}
-        <div className="relative">
-
-          <div className="absolute -top-10 -left-10 bg-white rounded-3xl shadow-xl px-6 py-4 z-20">
-
-            <p className="font-black text-2xl">
-              100.000+
-            </p>
-
-            <p className="text-zinc-500">
-              người học
-            </p>
-
-          </div>
-
-          <div className="bg-white border border-zinc-200 rounded-[40px] p-8 shadow-2xl">
-
-            <div className="bg-gradient-to-br from-blue-100 to-cyan-50 rounded-[30px] p-8 min-h-[500px] flex flex-col justify-between">
-
-              <div className="grid grid-cols-2 gap-5">
-
-                <div className="bg-white rounded-3xl p-5 shadow-sm">
-
-                  <p className="text-zinc-500 mb-2">
-                    Hôm nay
-                  </p>
-
-                  <p className="text-5xl font-black">
-                    77
-                  </p>
-
-                </div>
-
-                <div className="bg-orange-400 text-white rounded-3xl p-5 shadow-sm">
-
-                  <p className="mb-2 opacity-80">
-                    Chuỗi học
-                  </p>
-
-                  <p className="text-5xl font-black">
-                    17
-                  </p>
-
-                </div>
-
-              </div>
-
-              <div className="bg-white rounded-[30px] p-8 shadow-sm">
-
-                <p className="text-zinc-500 mb-3">
-                  Flashcard
-                </p>
-
-                <h2 className="text-5xl font-black mb-4">
-                  dissemination
-                </h2>
-
-                <p className="text-2xl text-zinc-600">
-                  sự lan truyền
-                </p>
-
-              </div>
-
-              <div className="grid grid-cols-3 gap-4">
-
-                <div className="bg-white rounded-2xl p-4 text-center font-bold">
-                  AI
-                </div>
-
-                <div className="bg-white rounded-2xl p-4 text-center font-bold">
-                  Quiz
-                </div>
-
-                <div className="bg-white rounded-2xl p-4 text-center font-bold">
-                  SRS
-                </div>
-
-              </div>
-
-            </div>
-
-          </div>
-
-          <div className="absolute -bottom-8 right-0 bg-white rounded-3xl shadow-xl px-6 py-4">
-
-            <p className="font-black text-xl">
-              AI + SRS
-            </p>
-
-            <p className="text-zinc-500">
-              học không rời rạc
-            </p>
-
-          </div>
-
-        </div>
-
       </section>
 
+      {/* FEATURES */}
+      <section
+        id="features"
+        className="max-w-7xl mx-auto px-5 md:px-8 py-20"
+      >
+        <div className="text-center">
+          <h2 className="text-4xl md:text-5xl font-black">
+            Mọi thứ cho việc học từ vựng
+          </h2>
+
+          <p className="text-gray-500 mt-5 text-lg">
+            Không cần dùng 5 app khác nhau nữa.
+          </p>
+        </div>
+
+        <div className="mt-16 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {[
+            "Flashcard thông minh",
+            "SRS nhắc ôn",
+            "Quiz luyện tập",
+            "AI tạo ví dụ",
+            "Theo dõi tiến độ",
+            "Roadmap học tập",
+          ].map((item) => (
+            <div
+              key={item}
+              className="bg-white p-8 rounded-[32px] shadow-sm border border-gray-100 hover:-translate-y-1 transition"
+            >
+              <div className="w-14 h-14 rounded-2xl bg-[#f5f9ff] mb-6" />
+
+              <h3 className="text-2xl font-black">{item}</h3>
+
+              <p className="text-gray-500 mt-4 leading-relaxed">
+                Tối ưu cho việc học dài hạn và ghi nhớ hiệu quả.
+              </p>
+            </div>
+          ))}
+        </div>
+      </section>
     </main>
   )
 }
