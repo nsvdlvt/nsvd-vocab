@@ -110,19 +110,6 @@ export default function LearnPage({
                 w.status === "learning"
         ).length
 
-    const progressValue =
-
-        queue.reduce(
-            (sum, word) =>
-
-                sum +
-                Math.min(
-                    word.memoryStrength || 0,
-                    4
-                ),
-
-            0
-        )
 
     const masteredCount =
 
@@ -132,6 +119,24 @@ export default function LearnPage({
         ).length
     const [totalWords, setTotalWords] =
         useState(0)
+    const progress =
+
+        Math.max(
+            0,
+
+            Math.min(
+                100,
+
+                (
+                    (
+                        correctCount -
+                        wrongCount * 0.35
+                    ) /
+
+                    (totalWords * 4)
+                ) * 100
+            )
+        )
     useEffect(() => {
 
         fetchWords()
@@ -727,10 +732,6 @@ export default function LearnPage({
         const isCorrect =
             answer ===
             currentWord.meaning
-        updateSpacedRepetition(
-            currentWord.id,
-            isCorrect
-        )
         setQueue((prev) => {
 
             return prev.map((word) => {
@@ -741,20 +742,31 @@ export default function LearnPage({
                 ) {
                     return word
                 }
+const nextStrength =
+    isCorrect
+        ? Math.min(
+            word.memoryStrength + 1,
+            4
+        )
+        : Math.max(
+            word.memoryStrength - 2,
+            0
+        )
 
+if (
+
+    word.memoryStrength >= 4 ||
+
+    nextStrength >= 4
+
+) {
+
+    updateSpacedRepetition(
+        currentWord.id,
+        isCorrect
+    )
+}
                 if (isCorrect) {
-
-                    const nextStrength =
-                        isCorrect
-                            ? Math.min(
-                                word.memoryStrength + 1,
-                                4
-                            )
-                            : Math.max(
-                                word.memoryStrength - 2,
-                                0
-                            )
-
                     return {
                         ...word,
 
@@ -779,10 +791,7 @@ export default function LearnPage({
                     ...word,
                     hasSeen: true,
                     memoryStrength:
-                        Math.max(
-                            word.memoryStrength - 2,
-                            0
-                        ),
+                        nextStrength,
                     questionType: "mcq",
                     status: "learning",
                 }
@@ -813,10 +822,15 @@ export default function LearnPage({
                 return
 
             setShowAnswer(true)
-            updateSpacedRepetition(
-                currentWord.id,
-                false
-            )
+            if (
+                currentWord.memoryStrength >= 4
+            ) {
+
+                updateSpacedRepetition(
+                    currentWord.id,
+                    false
+                )
+            }
             setWrongCount(
                 (prev) => prev + 1
             )
@@ -999,32 +1013,18 @@ export default function LearnPage({
 
                         <p className="font-black text-blue-600">
 
-                            {totalWords > 0
-                                ? Math.round(
-                                    (
-                                        masteredCount /
-                                        totalWords
-                                    ) * 100
-                                )
-                                : 0
-                            }%
+                            {Math.round(progress)}%
 
                         </p>
 
                     </div>
 
-                    <div className="w-full h-3 bg-gray-100 rounded-full overflow-hidden">
+                    <div className="w-full h-4 bg-blue-100/60 backdrop-blur rounded-full overflow-hidden border border-blue-100">
 
                         <div
-                            className="h-full bg-gradient-to-r from-blue-500 to-blue-600 shadow-[0_0_20px_rgba(59,130,246,0.35)] rounded-full transition-all duration-500"
+                            className="h-full bg-gradient-to-r from-blue-500 via-blue-400 to-cyan-400 shadow-[0_0_20px_rgba(59,130,246,0.35)] animate-pulse rounded-full transition-all duration-700 ease-out"
                             style={{
-                                width: `${totalWords > 0
-                                    ? (
-                                        masteredCount /
-                                        totalWords
-                                    ) * 100
-                                    : 0
-                                    }%`
+                                width: `${progress}%`
                             }}
                         />
 
@@ -1041,9 +1041,6 @@ export default function LearnPage({
 
                     <div />
 
-                    <p className="text-gray-400 font-bold">
-                        WORD
-                    </p>
 
                     <div className="flex items-center gap-2">
 
@@ -1640,11 +1637,17 @@ ${modalVisible
                                 <div className="flex justify-end gap-3 mt-6">
 
                                     <button
-                                        onClick={() =>
-                                            setEditingWord(
-                                                false
-                                            )
-                                        }
+                                        onClick={() => {
+
+                                            setModalVisible(false)
+
+                                            setTimeout(() => {
+
+                                                setEditingWord(false)
+
+                                            }, 200)
+
+                                        }}
                                         className="h-12 px-5 rounded-2xl bg-gray-100 font-bold"
                                     >
 
