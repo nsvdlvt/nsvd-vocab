@@ -78,7 +78,7 @@ export default function SetPage({
   }
 
   return (
-    <section className="p-5 md:p-8 pb-28 overflow-hidden">
+    <section className="w-full max-w-full p-4 md:p-8 pb-28 overflow-x-hidden">
 
       {/* TOP */}
       <div className="mb-10">
@@ -97,7 +97,7 @@ export default function SetPage({
           Chế độ học 😎🔥
         </h2>
 
-        <div className="grid grid-cols-1 min-[420px]:grid-cols-2 lg:grid-cols-5 gap-4 w-full">
+        <div className="grid grid-cols-2 gap-3 w-full">
 
           {/* FLASHCARD */}
           <button
@@ -106,7 +106,7 @@ export default function SetPage({
                 `/flashcard/${id}`
               )
             }
-            className="w-full max-w-full min-w-0 bg-white border border-gray-100 hover:-translate-y-1 hover:shadow-xl transition-all rounded-[28px] p-4 text-left min-h-[160px] md:min-h-[180px]"
+            className="w-full max-w-full min-w-0 bg-white border border-gray-100 hover:-translate-y-1 hover:shadow-xl transition-all rounded-[24px] p-4 text-left min-h-[140px] md:min-h-[180px]"
           >
             
             <div className="w-12 h-12 md:w-14 md:h-14 rounded-2xl bg-blue-50 flex items-center justify-center mb-4">
@@ -117,75 +117,75 @@ export default function SetPage({
               Flashcard
             </h3>
 
-            <p className="text-gray-500 text-sm mt-1 line-clamp-2">
+            <p className="text-gray-500 text-sm mt-1 hidden md:block">
               Lật thẻ học từ
             </p>
           </button>
 
           {/* LEARN */}
           <button
-            className="w-full max-w-full min-w-0 bg-white border border-gray-100 hover:-translate-y-1 hover:shadow-xl transition-all rounded-[28px] p-4 text-left min-h-[160px] md:min-h-[180px]"
+            className="w-full max-w-full min-w-0 bg-white border border-gray-100 hover:-translate-y-1 hover:shadow-xl transition-all rounded-[24px] p-4 text-left min-h-[140px] md:min-h-[180px]"
           >
             <div className="w-12 h-12 md:w-14 md:h-14 rounded-2xl bg-blue-50 flex items-center justify-center mb-4">
   <BookOpen className="w-7 h-7 text-blue-600" />
 </div>
 
-            <h3 className="font-black text-base md:text-lg">
+            <h3 className="font-black text-sm md:text-lg">
               Học
             </h3>
 
-            <p className="text-gray-500 text-sm mt-1 line-clamp-2">
+            <p className="text-gray-500 text-sm mt-1 hidden md:block">
               Học từng bước
             </p>
           </button>
 
           {/* FILL */}
           <button
-            className="w-full max-w-full min-w-0 bg-white border border-gray-100 hover:-translate-y-1 hover:shadow-xl transition-all rounded-[28px] p-4 text-left min-h-[180px]"
+            className="w-full max-w-full min-w-0 bg-white border border-gray-100 hover:-translate-y-1 hover:shadow-xl transition-all rounded-[24px] p-4 text-left min-h-[140px] md:min-h-[180px]"
           >
             <div className="w-12 h-12 md:w-14 md:h-14 rounded-2xl bg-blue-50 flex items-center justify-center mb-4">
   <PenSquare className="w-7 h-7 text-blue-600" />
 </div>
 
-            <h3 className="font-black text-base md:text-lg">
+            <h3 className="font-black text-sm md:text-lg">
               Điền từ
             </h3>
 
-            <p className="text-gray-500 text-sm mt-1 line-clamp-2">
+            <p className="text-gray-500 text-sm mt-1 hidden md:block">
               Điền từ còn thiếu
             </p>
           </button>
 
           {/* LISTEN */}
           <button
-            className="w-full max-w-full min-w-0 bg-white border border-gray-100 hover:-translate-y-1 hover:shadow-xl transition-all rounded-[28px] p-4 text-left min-h-[160px] md:min-h-[180px]"
+            className="w-full max-w-full min-w-0 bg-white border border-gray-100 hover:-translate-y-1 hover:shadow-xl transition-all rounded-[24px] p-4 text-left min-h-[140px] md:min-h-[180px]"
           >
             <div className="w-12 h-12 md:w-14 md:h-14 rounded-2xl bg-blue-50 flex items-center justify-center mb-4">
   <Headphones className="w-7 h-7 text-blue-600" />
 </div>
 
-            <h3 className="font-black text-base md:text-lg">
+            <h3 className="font-black text-sm md:text-lg">
               Nghe chép
             </h3>
 
-            <p className="text-gray-500 text-sm mt-1 line-clamp-2">
+            <p className="text-gray-500 text-sm mt-1 hidden md:block">
               Nghe và gõ lại
             </p>
           </button>
 
           {/* TEST */}
           <button
-            className="w-full max-w-full min-w-0 bg-white border border-gray-100 hover:-translate-y-1 hover:shadow-xl transition-all rounded-[28px] p-4 text-left min-h-[160px] md:min-h-[180px]"
+            className="w-full max-w-full min-w-0 bg-white border border-gray-100 hover:-translate-y-1 hover:shadow-xl transition-all rounded-[24px] p-4 text-left min-h-[140px] md:min-h-[180px]"
           >
             <div className="w-12 h-12 md:w-14 md:h-14 rounded-2xl bg-blue-50 flex items-center justify-center mb-4">
   <ClipboardCheck className="w-7 h-7 text-blue-600" />
 </div>
 
-            <h3 className="font-black text-base md:text-lg">
+            <h3 className="font-black text-sm md:text-lg">
               Kiểm tra
             </h3>
 
-            <p className="text-gray-500 text-sm mt-1 line-clamp-2">
+            <p className="text-gray-500 text-sm mt-1 hidden md:block">
               Test tổng hợp
             </p>
           </button>
@@ -198,7 +198,7 @@ export default function SetPage({
         {words.map((word, index) => (
           <div
             key={word.id}
-            className="bg-white rounded-[28px] md:rounded-[40px] border border-gray-100 shadow-sm p-6 md:p-8"
+            className="bg-white rounded-[24px] md:rounded-[40px] border border-gray-100 shadow-sm p-6 md:p-8"
           >
 
             {/* TOP */}
