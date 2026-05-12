@@ -28,8 +28,9 @@ export default function EditPage({
     const { id } = use(params)
     const [title, setTitle] = useState("")
     const [tag, setTag] =
-        useState("General")
-
+        useState("IELTS")
+const [showTags, setShowTags] =
+    useState(false)
     const [icon, setIcon] =
         useState("📘")
     const [isPublic, setIsPublic] =
@@ -795,14 +796,82 @@ từ vựng	phiên âm	loại từ	nghĩa tiếng Việt	ví dụ tiếng Anh	sy
                         Tag
                     </p>
 
-                    <input
-                        value={tag}
-                        onChange={(e) =>
-                            setTag(e.target.value)
-                        }
-                        placeholder="IELTS, School..."
-                        className="w-full bg-[#f5f9ff] rounded-2xl p-5 outline-none"
-                    />
+                    <div className="relative">
+
+    {/* BUTTON */}
+    <button
+        type="button"
+        onClick={() =>
+            setShowTags(
+                !showTags
+            )
+        }
+        className="w-full bg-[#f5f9ff] hover:bg-[#eef4ff] transition rounded-2xl p-5 outline-none flex items-center justify-between font-semibold border border-transparent hover:border-blue-200"
+    >
+
+        <span>
+            {tag}
+        </span>
+
+        <svg
+            className={`w-5 h-5 transition ${showTags
+                    ? "rotate-180"
+                    : ""
+                }`}
+            fill="none"
+            stroke="currentColor"
+            viewBox="0 0 24 24"
+        >
+            <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M19 9l-7 7-7-7"
+            />
+        </svg>
+
+    </button>
+
+    {/* DROPDOWN */}
+    {showTags && (
+
+        <div className="absolute z-50 mt-3 w-full bg-white border border-gray-100 shadow-[0_20px_60px_rgba(0,0,0,0.08)] rounded-3xl p-2 animate-dropdown">
+
+            {[
+                "IELTS",
+                "TOEIC",
+                "CEFR",
+                "TOEFL",
+                "Công việc",
+                "Khác",
+            ].map((item) => (
+
+                <button
+                    key={item}
+                    type="button"
+                    onClick={() => {
+
+                        setTag(item)
+
+                        setShowTags(false)
+                    }}
+                    className={`w-full text-left px-5 py-4 rounded-2xl transition font-semibold ${tag === item
+                            ? "bg-blue-600 text-white"
+                            : "hover:bg-[#f5f9ff]"
+                        }`}
+                >
+
+                    {item}
+
+                </button>
+
+            ))}
+
+        </div>
+
+    )}
+
+</div>
                 </div>
             </div>
             {/* WORDS */}

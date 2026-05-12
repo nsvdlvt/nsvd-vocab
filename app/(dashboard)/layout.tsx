@@ -12,6 +12,7 @@ import {
   Globe,
   X,
   LogOut,
+  DollarSign,
 } from "lucide-react"
 import { useEffect, useState } from "react"
 import { supabase } from "@/lib/supabase"
@@ -100,6 +101,11 @@ if (loading) {
       title: "Community",
       icon: Globe,
       path: "/community",
+    },
+    {
+      title: "Pricing",
+      icon: DollarSign,
+      path: "/pricing",
     },
     {
       title: "Cài đặt",

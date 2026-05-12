@@ -222,6 +222,11 @@ export default function SetPage({
 
           {/* LEARN */}
           <button
+            onClick={() =>
+              router.push(
+                `/learn/${id}`
+              )
+            }
             className="w-full max-w-full min-w-0 bg-white border border-gray-100 hover:-translate-y-1 hover:shadow-xl transition-all rounded-[24px] p-4 text-left min-h-[140px] md:min-h-[180px]"
           >
             <div className="w-12 h-12 md:w-14 md:h-14 rounded-2xl bg-blue-50 flex items-center justify-center mb-4">

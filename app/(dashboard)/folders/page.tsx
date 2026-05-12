@@ -279,7 +279,7 @@ export default function ArchivePage() {
                   </div>
 
                   {/* TITLE */}
-                  <h2 className="text-2xl md:text-3xl font-black line-clamp-2 break-all max-w-full px-2 leading-tight">
+                  <h2 className="mt-5 text-2xl md:text-3xl font-black line-clamp-2 break-all max-w-full px-2 leading-snug">
   {set.title}
 </h2>
 
