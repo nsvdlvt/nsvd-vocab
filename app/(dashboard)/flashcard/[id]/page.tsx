@@ -8,12 +8,17 @@ import {
 
 import { supabase }
     from "@/lib/supabase"
-
+import { useRouter }
+    from "next/navigation"
 import {
     ChevronLeft,
+    ArrowLeft,
+    CalendarDays,
     ChevronRight,
-    RotateCcw,
+    Shuffle,
     Volume2,
+    Settings2
+
 } from "lucide-react"
 
 type WordType = {
@@ -23,6 +28,7 @@ type WordType = {
     ipa: string
     example: string
     audio_url: string
+    word_type: string
 }
 
 const flipStyles = `
@@ -79,6 +85,7 @@ export default function FlashcardPage({
 }) {
 
     const { id } = use(params)
+    const router = useRouter()
 
     const [words, setWords] =
         useState<WordType[]>([])
@@ -94,10 +101,84 @@ export default function FlashcardPage({
 
     const [title, setTitle] =
         useState("")
+    const [showSettings, setShowSettings] =
+        useState(false)
 
+    const [frontMode, setFrontMode] =
+        useState<
+            "word" | "meaning"
+        >("word")
+    const [isShuffled, setIsShuffled] =
+        useState(false)
     useEffect(() => {
         fetchWords()
     }, [])
+    useEffect(() => {
+
+        const closeSettings = () =>
+            setShowSettings(false)
+
+        window.addEventListener(
+            "click",
+            closeSettings
+        )
+
+        return () =>
+            window.removeEventListener(
+                "click",
+                closeSettings
+            )
+
+    }, [])
+    useEffect(() => {
+
+        const handleKey = (
+            e: KeyboardEvent
+        ) => {
+
+            if (
+                e.code === "Space" ||
+                e.code === "Enter"
+            ) {
+
+                e.preventDefault()
+
+                setFlipped(
+                    (prev) => !prev
+                )
+            }
+
+            if (
+                e.key === "ArrowRight"
+            ) {
+
+                nextCard()
+            }
+
+            if (
+                e.key === "ArrowLeft"
+            ) {
+
+                prevCard()
+            }
+        }
+
+        window.addEventListener(
+            "keydown",
+            handleKey
+        )
+
+        return () =>
+            window.removeEventListener(
+                "keydown",
+                handleKey
+            )
+
+    }, [
+        currentIndex,
+        flipped,
+        words
+    ])
 
     const fetchWords = async () => {
 
@@ -178,7 +259,6 @@ export default function FlashcardPage({
             )
         }
     }
-
     const prevCard = () => {
 
         if (currentIndex > 0) {
@@ -190,7 +270,31 @@ export default function FlashcardPage({
             )
         }
     }
+    const shuffleCards = () => {
 
+        if (!isShuffled) {
+
+            const shuffled =
+                [...words].sort(
+                    () =>
+                        Math.random() - 0.5
+                )
+
+            setWords(shuffled)
+
+        } else {
+
+            fetchWords()
+        }
+
+        setIsShuffled(
+            !isShuffled
+        )
+
+        setCurrentIndex(0)
+
+        setFlipped(false)
+    }
     if (loading) {
         return (
             <div className="flex items-center justify-center min-h-screen">
@@ -198,11 +302,133 @@ export default function FlashcardPage({
             </div>
         )
     }
+    const settingsButton = (
 
+        <div className="absolute top-5 left-5 z-30">
+
+            <button
+                onClick={(e) => {
+
+                    e.stopPropagation()
+
+                    setShowSettings(
+                        !showSettings
+                    )
+                }}
+                className="w-11 h-11 rounded-2xl bg-white border border-gray-100 shadow-sm flex items-center justify-center hover:scale-105 transition"
+            >
+                <Settings2 className="w-5 h-5 text-gray-700" />
+            </button>
+
+            {showSettings && (
+
+                <div
+                    onClick={(e) =>
+                        e.stopPropagation()
+                    }
+                    className="absolute top-14 left-0 w-[260px] bg-white border border-gray-100 rounded-3xl shadow-2xl p-5"
+                >
+
+                    <h3 className="font-black text-lg mb-5">
+                        Mặt trước thẻ
+                    </h3>
+
+                    <div className="space-y-4">
+
+                        {/* WORD */}
+                        <button
+                            onClick={() =>
+                                setFrontMode(
+                                    "word"
+                                )
+                            }
+                            className={`w-full flex items-center gap-3 p-3 rounded-2xl border transition ${frontMode ===
+                                "word"
+                                ? "bg-blue-50 border-blue-200"
+                                : "border-gray-100"
+                                }`}
+                        >
+
+                            <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center ${frontMode ===
+                                "word"
+                                ? "border-blue-600"
+                                : "border-gray-300"
+                                }`}>
+
+                                {frontMode ===
+                                    "word" && (
+                                        <div className="w-2.5 h-2.5 rounded-full bg-blue-600" />
+                                    )}
+
+                            </div>
+
+                            <span className="font-semibold">
+                                Hiện thuật ngữ
+                            </span>
+
+                        </button>
+
+                        {/* MEANING */}
+                        <button
+                            onClick={() =>
+                                setFrontMode(
+                                    "meaning"
+                                )
+                            }
+                            className={`w-full flex items-center gap-3 p-3 rounded-2xl border transition ${frontMode ===
+                                "meaning"
+                                ? "bg-blue-50 border-blue-200"
+                                : "border-gray-100"
+                                }`}
+                        >
+
+                            <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center ${frontMode ===
+                                "meaning"
+                                ? "border-blue-600"
+                                : "border-gray-300"
+                                }`}>
+
+                                {frontMode ===
+                                    "meaning" && (
+                                        <div className="w-2.5 h-2.5 rounded-full bg-blue-600" />
+                                    )}
+
+                            </div>
+
+                            <span className="font-semibold">
+                                Hiện định nghĩa
+                            </span>
+
+                        </button>
+
+                    </div>
+
+                </div>
+
+            )}
+
+        </div>
+    )
     return (
         <section className="min-h-screen bg-[#f5f9ff] p-5 md:p-10">
             <style>{flipStyles}</style>
+            {/* TOP BAR */}
+            <div className="flex items-center justify-between mb-6">
 
+                {/* BACK */}
+                <button
+                    onClick={() => router.back()}
+                    className="flex items-center gap-2 bg-white border border-gray-100 hover:bg-gray-50 transition rounded-2xl px-4 py-3 shadow-sm"
+                >
+                    <ArrowLeft className="w-5 h-5" />
+
+                    <span className="font-semibold">
+                        Quay lại
+                    </span>
+                </button>
+
+
+            </div>
             {/* TOP */}
             <div className="mb-10 text-center">
 
@@ -260,38 +486,86 @@ export default function FlashcardPage({
                     onClick={() =>
                         setFlipped(!flipped)
                     }
-                    className="flip-container w-full h-[420px] md:h-[500px] rounded-[50px] shadow-[0_20px_60px_rgba(0,0,0,0.08)] border border-gray-100 cursor-pointer hover:scale-[1.01]
-                        hover:shadow-2xl
-                        active:scale-[0.98] transition-all"
+                    className="
+flip-container
+w-full
+h-[500px]
+md:h-[620px]
+rounded-[40px]
+cursor-pointer
+"
                 >
                     <div className={`flip-card ${flipped ? 'flipped' : ''}`}>
                         {/* FRONT - Word */}
-                        <div className="flip-card-front bg-white shadow-[0_20px_60px_rgba(0,0,0,0.08)] border border-gray-100 flex flex-col justify-center items-center text-center p-10">
+                        <div className="
+flip-card-front
+bg-white
+border
+border-gray-100
+rounded-[40px]
+shadow-[0_10px_40px_rgba(0,0,0,0.06)]
+flex
+flex-col
+justify-center
+items-center
+text-center
+p-10
+">
+                            {settingsButton}
+
                             <p className="text-gray-400 font-bold mb-5">
-                                WORD
+                                {frontMode === "word"
+                                    ? "WORD"
+                                    : "MEANING"}
                             </p>
 
                             <h2 className="text-4xl md:text-6xl font-black">
-                                {currentWord.word}
+                                {frontMode === "word"
+                                    ? currentWord.word
+                                    : currentWord.meaning}
                             </h2>
 
-                            <p className="text-2xl text-gray-500 mt-5">
-                                {currentWord.ipa}
-                            </p>
+                            {frontMode === "word" && (
 
+                                <div className="flex items-center gap-3 mt-5 flex-wrap justify-center">
 
-                            <button
-                                onClick={(e) => {
+                                    {currentWord.word_type && (
 
-                                    e.stopPropagation()
+                                        <span className="px-4 py-2 rounded-full bg-blue-50 text-blue-600 font-bold text-sm uppercase">
+                                            {currentWord.word_type}
+                                        </span>
 
-                                    playAudio()
+                                    )}
 
-                                }}
-                                className="mt-8 w-16 h-16 rounded-2xl bg-blue-50 hover:bg-blue-100 flex items-center justify-center transition"
-                            >
-                                <Volume2 className="w-7 h-7 text-blue-600" />
-                            </button>
+                                    {currentWord.ipa && (
+
+                                        <p className="text-xl text-gray-500">
+                                            {currentWord.ipa}
+                                        </p>
+
+                                    )}
+
+                                </div>
+
+                            )}
+
+                            {currentWord.example && (
+                                <p className="text-xl text-gray-500 mt-8 max-w-xl">
+                                    {currentWord.example}
+                                </p>
+                            )}
+
+                            {frontMode === "word" && (
+                                <button
+                                    onClick={(e) => {
+                                        e.stopPropagation()
+                                        playAudio()
+                                    }}
+                                    className="mt-8 w-16 h-16 rounded-2xl bg-blue-50 hover:bg-blue-100 flex items-center justify-center transition"
+                                >
+                                    <Volume2 className="w-7 h-7 text-blue-600" />
+                                </button>
+                            )}
 
 
                         </div>
@@ -299,23 +573,74 @@ export default function FlashcardPage({
                         {/* BACK - Meaning */}
                         <div className="flip-card-back bg-white shadow-[0_20px_60px_rgba(0,0,0,0.08)] border border-gray-100 flex flex-col justify-center items-center text-center p-10">
                             <p className="text-gray-400 font-bold mb-5">
-                                MEANING
+                                {frontMode === "word"
+                                    ? "MEANING"
+                                    : "WORD"}
                             </p>
+                            {settingsButton}
 
                             <h2 className="text-3xl md:text-5xl break-words font-black">
-                                {currentWord.meaning}
+                                {frontMode === "word"
+                                    ? currentWord.meaning
+                                    : currentWord.word}
                             </h2>
+                            {frontMode === "meaning" && (
 
-                            <p className="text-xl text-gray-500 mt-8 max-w-xl">
-                                {currentWord.example}
-                            </p>
+                                <div className="flex items-center justify-center gap-3 mt-5 flex-wrap">
+
+                                    {currentWord.word_type && (
+
+                                        <span className="px-4 py-2 rounded-full bg-blue-50 text-blue-600 font-bold text-sm uppercase">
+                                            {currentWord.word_type}
+                                        </span>
+
+                                    )}
+
+                                    {currentWord.ipa && (
+
+                                        <p className="text-xl text-gray-500">
+                                            {currentWord.ipa}
+                                        </p>
+
+                                    )}
+
+                                </div>
+
+                            )}
+
+                            {frontMode === "meaning" && currentWord.example && (
+                                <p className="text-xl text-gray-500 mt-8 max-w-xl">
+                                    {currentWord.example}
+                                </p>
+                            )}
+
+                            {frontMode === "meaning" && (
+
+                                <button
+                                    onClick={(e) => {
+                                        e.stopPropagation()
+                                        playAudio()
+                                    }}
+                                    className="mt-8 w-16 h-16 rounded-2xl bg-blue-50 hover:bg-blue-100 flex items-center justify-center transition"
+                                >
+                                    <Volume2 className="w-7 h-7 text-blue-600" />
+                                </button>
+
+                            )}
+                            {frontMode === "word" && (
+
+                                <p className="text-xl text-gray-500 mt-8 max-w-xl">
+                                    {currentWord.example}
+                                </p>
+
+                            )}
                         </div>
                     </div>
                 </div>
 
                 {/* HINT */}
                 <p className="text-center text-gray-500 mt-5">
-                    Click vào card để lật 😎🔥
+                    ✨Phím tắt: Space / Enter để lật thẻ và ← → để chuyển thẻ
                 </p>
 
                 {/* ACTIONS */}
@@ -329,14 +654,30 @@ export default function FlashcardPage({
                         <ChevronLeft />
                     </button>
 
-                    <button
-                        onClick={() =>
-                            setFlipped(!flipped)
-                        }
-                        className="w-16 h-16 rounded-2xl bg-blue-600 text-white flex items-center justify-center"
-                    >
-                        <RotateCcw />
-                    </button>
+                    <div className="flex items-center gap-4 bg-white border border-gray-100 rounded-2xl px-5 h-16 shadow-sm">
+
+                        <span className="font-semibold text-gray-700">
+                            Đảo thứ tự
+                        </span>
+
+                        <button
+                            onClick={shuffleCards}
+                            className={`w-14 h-8 rounded-full transition relative ${isShuffled
+                                ? "bg-blue-600"
+                                : "bg-gray-200"
+                                }`}
+                        >
+
+                            <div
+                                className={`absolute top-1 w-6 h-6 rounded-full bg-white transition ${isShuffled
+                                    ? "left-7"
+                                    : "left-1"
+                                    }`}
+                            />
+
+                        </button>
+
+                    </div>
 
                     <button
                         onClick={nextCard}

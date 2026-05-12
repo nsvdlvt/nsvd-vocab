@@ -9,6 +9,8 @@ import {
   PenSquare,
   Headphones,
   ClipboardCheck,
+  ArrowLeft,
+  CalendarDays,
 } from "lucide-react"
 
 type WordType = {
@@ -38,7 +40,10 @@ export default function SetPage({
 
   const [title, setTitle] =
     useState("")
-
+  const [author, setAuthor] =
+    useState("")
+  const [authorAvatar, setAuthorAvatar] =
+    useState("")
   const [loading, setLoading] =
     useState(true)
 
@@ -56,6 +61,12 @@ export default function SetPage({
 
     if (setData) {
       setTitle(setData.title)
+      setAuthor(
+        setData.author_name || ""
+      )
+      setAuthorAvatar(
+        setData.author_avatar || ""
+      )
     }
 
     const { data } =
@@ -80,15 +91,91 @@ export default function SetPage({
   return (
     <section className="w-full p-4 md:p-8 pb-28">
 
-      {/* TOP */}
-      <div className="mb-10">
-        <p className="text-gray-500 text-lg">
-          Vocabulary set ✨
-        </p>
+      {/* TOP BAR */}
+      <div className="flex items-center justify-between mb-6">
 
-        <h1 className="text-4xl md:text-5xl font-black mt-2 leading-none break-words">
-          {title}
-        </h1>
+        {/* BACK */}
+        <button
+          onClick={() => router.back()}
+          className="flex items-center gap-2 bg-white border border-gray-100 hover:bg-gray-50 transition rounded-2xl px-4 py-3 shadow-sm"
+        >
+          <ArrowLeft className="w-5 h-5" />
+
+          <span className="font-semibold">
+            Quay lại
+          </span>
+        </button>
+
+        {/* SPACED REP */}
+        <button
+          className="flex items-center gap-2 bg-blue-600 text-white hover:bg-blue-700 transition rounded-2xl px-4 py-3 shadow-lg shadow-blue-200"
+        >
+          <CalendarDays className="w-5 h-5" />
+
+          <span className="font-semibold">
+            Học ngắt quãng
+          </span>
+        </button>
+
+      </div>
+      {/* TOP */}
+      <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-5 mb-10">
+
+        {/* LEFT */}
+        <div>
+          <p className="text-gray-500 text-lg">
+            Vocabulary set ✨
+          </p>
+
+          <h1 className="text-4xl md:text-5xl font-black mt-2 leading-none break-words">
+            {title}
+          </h1>
+        </div>
+
+        {/* AUTHOR */}
+        {author && (
+          <div className="bg-gradient-to-br from-white to-blue-50 border border-blue-100 shadow-sm rounded-3xl px-5 py-4 w-full md:w-auto md:min-w-[220px]">
+
+            <p className="text-gray-400 text-sm font-semibold">
+              Tác giả
+            </p>
+
+            <div className="flex items-center gap-3 mt-2">
+
+              <div className="w-12 h-12 rounded-2xl overflow-hidden bg-blue-100 flex items-center justify-center">
+
+                {authorAvatar ? (
+
+                  <img
+                    src={authorAvatar}
+                    alt={author}
+                    className="w-full h-full object-cover"
+                  />
+
+                ) : (
+
+                  <span className="font-black text-lg text-blue-600">
+                    {author.charAt(0)}
+                  </span>
+
+                )}
+
+              </div>
+
+              <div>
+                <h3 className="font-black text-lg leading-tight">
+                  {author}
+                </h3>
+
+                <p className="text-gray-400 text-sm">
+                  Member
+                </p>
+              </div>
+
+            </div>
+          </div>
+        )}
+
       </div>
       {/* LEARNING MODES */}
       <div className="mb-10">
@@ -280,6 +367,6 @@ export default function SetPage({
           </div>
         ))}
       </div>
-    </section>
+    </section >
   )
 }

@@ -108,6 +108,7 @@ export default function NewPage() {
     setWords(updated)
   }
   const saveSet = async () => {
+    setSaving(true)
     if (!title) {
       setPopup({
         show: true,
@@ -125,6 +126,18 @@ export default function NewPage() {
       } = await supabase.auth.getSession()
 
       const user = session?.user
+      if (!user) {
+
+        setPopup({
+          show: true,
+          type: "error",
+          message: "Bạn chưa đăng nhập",
+        })
+
+        setSaving(false)
+
+        return
+      }
 
       // lọc từ hợp lệ
       // check row lỗi
@@ -235,6 +248,13 @@ export default function NewPage() {
           icon,
           is_public: isPublic,
           user_id: user?.id,
+          author_name:
+            user.user_metadata
+              ?.full_name
+            || user.email,
+            author_avatar:
+  user.user_metadata
+    ?.avatar_url || "",
         })
         .select()
         .single()
@@ -626,7 +646,6 @@ từ vựng	phiên âm	loại từ	nghĩa tiếng Việt	ví dụ tiếng Anh	sy
         </div>
       )}
       {/* TOP */}
-      <div className="overflow-y-auto pr-2 flex-1"></div>
       <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-5 mb-10">
 
         <div>
@@ -746,7 +765,7 @@ từ vựng	phiên âm	loại từ	nghĩa tiếng Việt	ví dụ tiếng Anh	sy
           </p>
           <div className="flex items-center gap-4 mb-5">
 
-            <div className="w-20 h-20 rounded-3xl bg-[#f5f9ff] flex items-center justify-center text-5xl border border-gray-200">
+            <div className="w-20 h-20 rounded-3xl bg-[#f5f9ff] flex items-center justify-center text-3xl md:text-5xl border border-gray-200">
               {icon}
             </div>
 
