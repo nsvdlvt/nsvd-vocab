@@ -785,7 +785,7 @@ export default function LearnPage({
 
             </div>
             {/* PROGRESS */}
-            <div className="max-w-2xl mx-auto mb-6">
+            <div className="max-w-4xl mx-auto mb-6">
 
                 {/* PROGRESS */}
                 <div className="w-full mb-8">
@@ -834,18 +834,18 @@ export default function LearnPage({
             </div>
 
             {/* CARD */}
-            <div className="max-w-2xl mx-auto bg-white rounded-[40px] shadow-[0_10px_40px_rgba(0,0,0,0.06)] border border-gray-100 p-8 md:p-10">
+            <div className="max-w-4xl mx-auto bg-white rounded-[40px] shadow-[0_10px_40px_rgba(0,0,0,0.06)] border border-gray-100 p-6 md:p-7">
 
                 <p className="text-center text-gray-400 font-bold mb-5">
                     WORD
                 </p>
 
-                <h2 className="text-3xl md:text-5xl font-black text-center break-words leading-tight">
+                <h2 className="text-2xl md:text-4xl font-black text-center break-words leading-tight">
 
                     {currentWord.word}
 
                 </h2>
-                <div className="mt-10 grid grid-cols-2 gap-4">
+                <div className="mt-7 grid grid-cols-2 gap-3">
 
                     {options.map(
                         (option, index) => {
@@ -871,7 +871,7 @@ export default function LearnPage({
                                     w-full
                                     rounded-[28px]
 p-4
-min-h-[110px]
+min-h-[84px]
                                     text-left
                                     border-2
 transition-all duration-300 active:scale-[0.98]
@@ -909,249 +909,256 @@ ${!showAnswer
                 {showAnswer && (
 
                     <div
-                        className={`
-mt-8
-rounded-[32px]
-animate-popup-spring
-p-5
-    border
+    className={`
+        mt-5
+        rounded-[28px]
+        border
+        px-5 py-4
 
-    ${selectedAnswer ===
-                                currentWord.meaning
-                                ? "bg-green-50 border-green-200"
-                                : "bg-red-50 border-red-200"
-                            }
-`}
-                    >
+        ${selectedAnswer === currentWord.meaning
+            ? "bg-green-50 border-green-300"
+            : "bg-red-50 border-red-300"
+        }
+    `}
+>
 
-                        <div className="flex items-center gap-4">
+    {/* HEADER */}
+    <div className="flex items-center gap-4">
 
-                            <div
-                                className={`
-            w-14 h-14 rounded-2xl flex items-center justify-center
+        {/* ICON */}
+        <div
+            className={`
+                w-10 h-10 rounded-xl flex items-center justify-center shrink-0
 
-            ${selectedAnswer ===
-                                        currentWord.meaning
-                                        ? "bg-green-100"
-                                        : "bg-red-100"
-                                    }
-        `}
-                            >
-
-                                {selectedAnswer ===
-                                    currentWord.meaning ? (
-
-                                    <Check className="text-green-600" />
-
-                                ) : (
-
-                                    <X className="text-red-600" />
-
-                                )}
-
-                            </div>
-
-                            <div>
-
-                                <h3
-                                    className={`
-                font-black text-xl
-
-                ${selectedAnswer ===
-                                            currentWord.meaning
-                                            ? "text-green-700"
-                                            : "text-red-700"
-                                        }
+                ${selectedAnswer === currentWord.meaning
+                    ? "bg-green-100"
+                    : "bg-red-100"
+                }
             `}
-                                >
+        >
 
-                                    {selectedAnswer ===
-                                        currentWord.meaning
-                                        ? "Chính xác!"
-                                        : "Đáp án đúng:"}
+            {selectedAnswer === currentWord.meaning ? (
 
-                                </h3>
+                <Check className="w-5 h-5 text-green-600" />
 
-                                <p className="font-semibold text-lg mt-1">
-                                    {currentWord.meaning}
-                                </p>
+            ) : (
 
-                            </div>
+                <X className="w-5 h-5 text-red-600" />
 
-                        </div>
+            )}
 
-                        <div className="mt-6 bg-white rounded-[28px] border border-gray-100 p-5">
+        </div>
 
-                            {/* TOP */}
-                            <div className="flex items-center gap-3 flex-wrap">
+        {/* LEFT */}
+        <div className="flex-1 min-w-0">
 
-                                {currentWord.word_type && (
+            {selectedAnswer === currentWord.meaning ? (
 
-                                    <span className="px-3 py-1 rounded-full bg-blue-50 text-blue-600 font-bold text-xs uppercase">
+                <h3 className="font-black text-green-700 text-lg">
 
-                                        {currentWord.word_type}
+                    Chính xác!
 
-                                    </span>
+                </h3>
 
-                                )}
+            ) : (
 
-                                {currentWord.ipa && (
+                <div>
 
-                                    <span className="text-gray-500 font-semibold">
+                    <p className="font-black text-red-700 text-lg">
 
-                                        {currentWord.ipa}
+                        Đáp án đúng:
+                        <span className="ml-2 text-black">
 
-                                    </span>
+                            {currentWord.meaning}
 
-                                )}
+                        </span>
 
-                                <div className="ml-auto flex items-center gap-3">
+                    </p>
 
-                                    {/* SOUND */}
-                                    <button
-                                        onClick={playAudio}
-                                        className="relative group w-10 h-10 rounded-xl bg-blue-50 hover:bg-blue-100 flex items-center justify-center transition"
-                                    >
+                </div>
 
-                                        <Volume2 className="w-5 h-5 text-blue-600" />
+            )}
 
-                                    </button>
+        </div>
 
-                                    {/* AUTO SOUND */}
-                                    <div className="relative group">
+        {/* RIGHT */}
+        <div className="flex items-center gap-2 shrink-0 self-start pt-1">
 
-                                        {/* TOOLTIP */}
-                                        <div className="
-            absolute bottom-[120%] left-1/2
-            -translate-x-1/2
-            px-3 py-1.5
-            rounded-xl
-            bg-black text-white
-            text-xs font-semibold
-            whitespace-nowrap
-            opacity-0
-            pointer-events-none
-            transition-all duration-200
-            translate-y-1
-            group-hover:opacity-100
-            group-hover:translate-y-0
-        ">
+            {currentWord.word_type && (
 
-                                            Auto sound
+                <span className="px-3 py-1 rounded-full bg-blue-50 text-blue-600 font-bold text-xs uppercase">
 
-                                        </div>
+                    {currentWord.word_type}
 
-                                        {/* SWITCH */}
-                                        <button
-                                            onClick={() =>
-                                                setAutoPlayAudio(
-                                                    !autoPlayAudio
-                                                )
-                                            }
-                                            className={`
-                relative w-12 h-7 rounded-full transition
+                </span>
 
-                ${autoPlayAudio
-                                                    ? "bg-blue-600"
-                                                    : "bg-gray-200"
-                                                }
-            `}
-                                        >
+            )}
 
-                                            <div
-                                                className={`
-                    absolute top-1 w-5 h-5 rounded-full bg-white transition
+            {currentWord.ipa && (
 
-                    ${autoPlayAudio
-                                                        ? "left-6"
-                                                        : "left-1"
-                                                    }
-                `}
-                                            />
+                <span className="text-gray-500 font-semibold whitespace-nowrap">
 
-                                        </button>
+                    {currentWord.ipa}
 
-                                    </div>
+                </span>
 
-                                </div>
-                            </div>
+            )}
 
-                            {/* MEANING */}
-                            <div className="mt-5">
+        </div>
 
-                                <p className="text-gray-400 font-bold text-sm">
-                                    Nghĩa
-                                </p>
+    </div>
 
-                                <p className="text-xl font-black mt-1">
+    {/* BODY */}
+    <div className="mt-4 pt-4 border-t border-black/5">
 
-                                    {currentWord.meaning}
+        {/* MEANING + SOUND */}
+        <div className="flex items-start gap-4">
 
-                                </p>
+            <div className="flex-1">
 
-                            </div>
+                <p className="text-gray-400 font-bold text-sm">
+                    Nghĩa
+                </p>
 
-                            {/* EXAMPLE */}
-                            {currentWord.example && (
+                <p className="text-2xl font-black mt-1">
 
-                                <div className="mt-5 bg-gray-50 rounded-2xl px-4 py-3">
+                    {currentWord.meaning}
 
-                                    <p className="text-gray-400 font-bold text-sm mb-2">
-                                        Ví dụ
-                                    </p>
+                </p>
 
-                                    <p className="text-gray-700 italic leading-relaxed">
+            </div>
 
-                                        {currentWord.example
-                                            .split(
-                                                currentWord.word
-                                            )
-                                            .map(
-                                                (
-                                                    part,
-                                                    index,
-                                                    arr
-                                                ) => (
+            <div className="flex items-center gap-3">
 
-                                                    <span key={index}>
+                {/* SOUND */}
+                <button
+                    onClick={playAudio}
+                    className="w-10 h-10 rounded-xl bg-blue-50 hover:bg-blue-100 flex items-center justify-center transition"
+                >
 
-                                                        {part}
+                    <Volume2 className="w-5 h-5 text-blue-600" />
 
-                                                        {index <
-                                                            arr.length - 1 && (
+                </button>
 
-                                                                <span className="font-bold text-blue-600 drop-shadow-[0_0_16px_rgba(59,130,246,0.8)]">
+                {/* AUTO SOUND */}
+                <div className="relative group">
 
-                                                                    {currentWord.word}
+                    <div className="
+                        absolute bottom-[120%] left-1/2
+                        -translate-x-1/2
+                        px-3 py-1.5 rounded-xl
+                        bg-black text-white
+                        text-xs font-semibold
+                        whitespace-nowrap
+                        opacity-0 pointer-events-none
+                        transition-all duration-200
+                        translate-y-1
+                        group-hover:opacity-100
+                        group-hover:translate-y-0
+                    ">
 
-                                                                </span>
-
-                                                            )}
-
-                                                    </span>
-
-                                                )
-                                            )}
-
-                                    </p>
-
-                                </div>
-
-                            )}
-
-                            {/* NEXT */}
-                            <button
-                                onClick={nextQuestion}
-                                className="mt-5 w-full h-12 rounded-2xl bg-blue-600 hover:bg-blue-700 text-white font-bold transition"
-                            >
-
-                                Tiếp tục
-
-                            </button>
-
-                        </div>
+                        Auto sound
 
                     </div>
+
+                    <button
+                        onClick={() =>
+                            setAutoPlayAudio(
+                                !autoPlayAudio
+                            )
+                        }
+                        className={`
+                            relative w-11 h-6 rounded-full transition
+
+                            ${autoPlayAudio
+                                ? "bg-blue-600"
+                                : "bg-gray-200"
+                            }
+                        `}
+                    >
+
+                        <div
+                            className={`
+                                absolute top-0.5 w-5 h-5 rounded-full bg-white transition
+
+                                ${autoPlayAudio
+                                    ? "left-5"
+                                    : "left-0.5"
+                                }
+                            `}
+                        />
+
+                    </button>
+
+                </div>
+
+            </div>
+
+        </div>
+
+        {/* EXAMPLE */}
+        {currentWord.example && (
+
+            <div className="mt-5 bg-white/70 rounded-2xl px-4 py-3">
+
+                <p className="text-gray-400 font-bold text-sm mb-2">
+                    Ví dụ
+                </p>
+
+                <p className="text-gray-700 italic leading-relaxed">
+
+                    {currentWord.example
+                        .split(currentWord.word)
+                        .map(
+                            (
+                                part,
+                                index,
+                                arr
+                            ) => (
+
+                                <span key={index}>
+
+                                    {part}
+
+                                    {index <
+                                        arr.length - 1 && (
+
+                                            <span className="font-bold text-blue-600 drop-shadow-[0_0_16px_rgba(59,130,246,0.8)]">
+
+                                                {currentWord.word}
+
+                                            </span>
+
+                                        )}
+
+                                </span>
+
+                            )
+                        )}
+
+                </p>
+
+            </div>
+
+        )}
+
+        {/* NEXT */}
+        <div className="flex justify-end mt-5">
+
+            <button
+                onClick={nextQuestion}
+                className="w-[150px] h-11 rounded-2xl bg-blue-600 hover:bg-blue-700 text-white font-bold transition"
+            >
+
+                Tiếp tục
+
+            </button>
+
+        </div>
+
+    </div>
+
+</div>
 
                 )}
 
