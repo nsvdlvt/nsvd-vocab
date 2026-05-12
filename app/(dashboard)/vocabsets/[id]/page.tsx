@@ -97,7 +97,7 @@ export default function SetPage({
           Chế độ học 😎🔥
         </h2>
 
-        <div className="grid w-full max-w-full grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-5 overflow-hidden">
+        <div className="grid grid-cols-1 min-[420px]:grid-cols-2 lg:grid-cols-5 gap-4 w-full">
 
           {/* FLASHCARD */}
           <button
@@ -106,7 +106,7 @@ export default function SetPage({
                 `/flashcard/${id}`
               )
             }
-            className="w-full max-w-full min-w-0 bg-white border border-gray-100 hover:-translate-y-1 hover:shadow-xl transition-all rounded-[28px] p-4 md:p-5 text-left min-h-[180px]"
+            className="w-full max-w-full min-w-0 bg-white border border-gray-100 hover:-translate-y-1 hover:shadow-xl transition-all rounded-[28px] p-4 text-left min-h-[160px] md:min-h-[180px]"
           >
             
             <div className="w-12 h-12 md:w-14 md:h-14 rounded-2xl bg-blue-50 flex items-center justify-center mb-4">
@@ -124,7 +124,7 @@ export default function SetPage({
 
           {/* LEARN */}
           <button
-            className="w-full max-w-full min-w-0 bg-white border border-gray-100 hover:-translate-y-1 hover:shadow-xl transition-all rounded-[28px] p-4 md:p-5 text-left min-h-[180px]"
+            className="w-full max-w-full min-w-0 bg-white border border-gray-100 hover:-translate-y-1 hover:shadow-xl transition-all rounded-[28px] p-4 text-left min-h-[160px] md:min-h-[180px]"
           >
             <div className="w-12 h-12 md:w-14 md:h-14 rounded-2xl bg-blue-50 flex items-center justify-center mb-4">
   <BookOpen className="w-7 h-7 text-blue-600" />
@@ -141,7 +141,7 @@ export default function SetPage({
 
           {/* FILL */}
           <button
-            className="w-full max-w-full min-w-0 bg-white border border-gray-100 hover:-translate-y-1 hover:shadow-xl transition-all rounded-[28px] p-4 md:p-5 text-left min-h-[180px]"
+            className="w-full max-w-full min-w-0 bg-white border border-gray-100 hover:-translate-y-1 hover:shadow-xl transition-all rounded-[28px] p-4 text-left min-h-[180px]"
           >
             <div className="w-12 h-12 md:w-14 md:h-14 rounded-2xl bg-blue-50 flex items-center justify-center mb-4">
   <PenSquare className="w-7 h-7 text-blue-600" />
@@ -158,7 +158,7 @@ export default function SetPage({
 
           {/* LISTEN */}
           <button
-            className="w-full max-w-full min-w-0 bg-white border border-gray-100 hover:-translate-y-1 hover:shadow-xl transition-all rounded-[28px] p-4 md:p-5 text-left min-h-[180px]"
+            className="w-full max-w-full min-w-0 bg-white border border-gray-100 hover:-translate-y-1 hover:shadow-xl transition-all rounded-[28px] p-4 text-left min-h-[160px] md:min-h-[180px]"
           >
             <div className="w-12 h-12 md:w-14 md:h-14 rounded-2xl bg-blue-50 flex items-center justify-center mb-4">
   <Headphones className="w-7 h-7 text-blue-600" />
@@ -175,7 +175,7 @@ export default function SetPage({
 
           {/* TEST */}
           <button
-            className="w-full max-w-full min-w-0 bg-white border border-gray-100 hover:-translate-y-1 hover:shadow-xl transition-all rounded-[28px] p-4 md:p-5 text-left min-h-[180px]"
+            className="w-full max-w-full min-w-0 bg-white border border-gray-100 hover:-translate-y-1 hover:shadow-xl transition-all rounded-[28px] p-4 text-left min-h-[160px] md:min-h-[180px]"
           >
             <div className="w-12 h-12 md:w-14 md:h-14 rounded-2xl bg-blue-50 flex items-center justify-center mb-4">
   <ClipboardCheck className="w-7 h-7 text-blue-600" />
