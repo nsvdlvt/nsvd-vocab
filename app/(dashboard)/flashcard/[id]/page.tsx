@@ -261,8 +261,8 @@ export default function FlashcardPage({
                         setFlipped(!flipped)
                     }
                     className="flip-container w-full h-[420px] md:h-[500px] rounded-[50px] shadow-[0_20px_60px_rgba(0,0,0,0.08)] border border-gray-100 cursor-pointer hover:scale-[1.01]
-hover:shadow-2xl
-active:scale-[0.98] transition-all"
+                        hover:shadow-2xl
+                        active:scale-[0.98] transition-all"
                 >
                     <div className={`flip-card ${flipped ? 'flipped' : ''}`}>
                         {/* FRONT - Word */}
