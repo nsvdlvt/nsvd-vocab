@@ -17,6 +17,8 @@ import {
     Check,
     Volume2,
     X,
+    Star,
+    Pencil,
 } from "lucide-react"
 
 type LearningWord = {
@@ -27,7 +29,7 @@ type LearningWord = {
     example: string
     audio_url: string
     word_type: string
-
+    starred?: boolean
     memoryStrength: number
     hasSeen: boolean
 
@@ -62,14 +64,32 @@ export default function LearnPage({
         useState("")
     const [title, setTitle] =
         useState("")
-
+    const [setUpdatedAt, setSetUpdatedAt] =
+        useState("")
     const [streak, setStreak] =
         useState(0)
     const [autoPlayAudio, setAutoPlayAudio] =
         useState(true)
     const [selectedAnswer, setSelectedAnswer] =
         useState<string | null>(null)
+    const [editingWord, setEditingWord] =
+        useState(false)
+    const [modalVisible, setModalVisible] =
+        useState(false)
+    const [editWord, setEditWord] =
+        useState("")
 
+    const [editMeaning, setEditMeaning] =
+        useState("")
+
+    const [editExample, setEditExample] =
+        useState("")
+
+    const [editIPA, setEditIPA] =
+        useState("")
+
+    const [editWordType, setEditWordType] =
+        useState("")
     const [showAnswer, setShowAnswer] =
         useState(false)
     const [options, setOptions] =
@@ -105,7 +125,11 @@ export default function LearnPage({
         )
 
     const masteredCount =
-        progressValue / 4
+
+        queue.filter(
+            (w) =>
+                w.memoryStrength >= 4
+        ).length
     const [totalWords, setTotalWords] =
         useState(0)
     useEffect(() => {
@@ -138,6 +162,9 @@ export default function LearnPage({
         if (setData) {
 
             setTitle(setData.title)
+            setSetUpdatedAt(
+                setData.updated_at
+            )
         }
         const { data: session } =
             await supabase
@@ -155,7 +182,15 @@ export default function LearnPage({
                 )
                 .maybeSingle()
 
-        if (session) {
+        if (
+            session &&
+            new Date(
+                session.set_updated_at
+            ).getTime() ===
+            new Date(
+                setData.updated_at
+            ).getTime()
+        ) {
 
             setQueue(
 
@@ -183,7 +218,6 @@ export default function LearnPage({
                 session.all_words
             )
 
-
             setCorrectCount(
                 session.correct_count
             )
@@ -199,6 +233,15 @@ export default function LearnPage({
             setLoading(false)
 
             return
+        }
+
+        else if (session) {
+
+            await supabase
+                .from("learning_sessions")
+                .delete()
+                .eq("user_id", user.id)
+                .eq("set_id", id)
         }
         const { data } =
             await supabase
@@ -216,7 +259,17 @@ export default function LearnPage({
                     status: "new",
                 })
             )
+        for (const word of data || []) {
 
+            await supabase
+                .from(
+                    "user_word_progress"
+                )
+                .upsert({
+                    user_id: user.id,
+                    word_id: word.id,
+                })
+        }
         setQueue(initializedWords)
         setAllWords(initializedWords)
         setTotalWords(
@@ -327,7 +380,19 @@ export default function LearnPage({
 
                     nextQuestion()
                 }
+                if (
+                    editingWord &&
+                    e.key === "Escape"
+                ) {
 
+                    setModalVisible(false)
+
+                    setTimeout(() => {
+
+                        setEditingWord(false)
+
+                    }, 200)
+                }
                 if (
                     !showAnswer
                 ) {
@@ -360,7 +425,8 @@ export default function LearnPage({
 
     }, [
         options,
-        showAnswer
+        showAnswer,
+        editingWord
     ])
     const saveProgress = async (
         updatedQueue:
@@ -396,6 +462,8 @@ export default function LearnPage({
 
                     updated_at:
                         new Date(),
+                    set_updated_at:
+                        setUpdatedAt,
                 },
                 {
                     onConflict:
@@ -403,6 +471,133 @@ export default function LearnPage({
                 }
             )
     }
+    const updateSpacedRepetition =
+        async (
+            wordId: string,
+            correct: boolean
+        ) => {
+
+            const {
+                data: progress
+            } = await supabase
+                .from(
+                    "user_word_progress"
+                )
+                .select("*")
+                .eq(
+                    "user_id",
+                    userId
+                )
+                .eq(
+                    "word_id",
+                    wordId
+                )
+                .single()
+
+            if (!progress)
+                return
+
+            let repetitions =
+                progress.repetitions
+
+            let interval =
+                progress.interval_days
+
+            let easeFactor =
+                progress.ease_factor
+
+            // CORRECT
+            if (correct) {
+
+                repetitions += 1
+
+                if (
+                    repetitions === 1
+                ) {
+
+                    interval = 1
+
+                } else if (
+                    repetitions === 2
+                ) {
+
+                    interval = 3
+
+                } else {
+
+                    interval =
+                        Math.min(
+                            7,
+                            Math.round(
+                                interval *
+                                easeFactor
+                            )
+                        )
+                }
+
+            }
+
+            // WRONG
+            else {
+
+                repetitions = 0
+
+                interval = 1
+
+                easeFactor =
+                    Math.max(
+                        1.3,
+                        easeFactor - 0.2
+                    )
+            }
+
+            // REVIEW DATE
+            const reviewAt =
+                new Date()
+
+            reviewAt.setDate(
+                reviewAt.getDate() +
+                interval
+            )
+
+            await supabase
+                .from(
+                    "user_word_progress"
+                )
+                .update({
+
+                    repetitions,
+
+                    interval_days:
+                        interval,
+
+                    ease_factor:
+                        easeFactor,
+
+                    review_at:
+                        reviewAt,
+
+                    last_reviewed_at:
+                        new Date(),
+
+                    total_correct:
+                        correct
+                            ? progress.total_correct + 1
+                            : progress.total_correct,
+
+                    total_wrong:
+                        !correct
+                            ? progress.total_wrong + 1
+                            : progress.total_wrong,
+
+                    updated_at:
+                        new Date(),
+                })
+                .eq(
+                    "id",
+                    progress.id
+                )
+        }
     const handleComplete =
         async () => {
 
@@ -503,7 +698,7 @@ export default function LearnPage({
         })
     }
     const getRandomQuestionType =
-    (): LearningWord["questionType"] => {
+        (): LearningWord["questionType"] => {
 
             const types: LearningWord["questionType"][] = [
                 "mcq",
@@ -532,7 +727,10 @@ export default function LearnPage({
         const isCorrect =
             answer ===
             currentWord.meaning
-
+        updateSpacedRepetition(
+            currentWord.id,
+            isCorrect
+        )
         setQueue((prev) => {
 
             return prev.map((word) => {
@@ -585,7 +783,7 @@ export default function LearnPage({
                             word.memoryStrength - 2,
                             0
                         ),
-                    questionType: "mcq" , 
+                    questionType: "mcq",
                     status: "learning",
                 }
             })
@@ -615,7 +813,10 @@ export default function LearnPage({
                 return
 
             setShowAnswer(true)
-
+            updateSpacedRepetition(
+                currentWord.id,
+                false
+            )
             setWrongCount(
                 (prev) => prev + 1
             )
@@ -836,9 +1037,99 @@ export default function LearnPage({
             {/* CARD */}
             <div className="max-w-4xl mx-auto bg-white rounded-[40px] shadow-[0_10px_40px_rgba(0,0,0,0.06)] border border-gray-100 p-6 md:p-7">
 
-                <p className="text-center text-gray-400 font-bold mb-5">
-                    WORD
-                </p>
+                <div className="flex items-center justify-between mb-5">
+
+                    <div />
+
+                    <p className="text-gray-400 font-bold">
+                        WORD
+                    </p>
+
+                    <div className="flex items-center gap-2">
+
+                        {/* STAR */}
+                        <button
+                            onClick={() => {
+
+                                setQueue((prev) =>
+                                    prev.map((word) =>
+
+                                        word.id === currentWord.id
+
+                                            ? {
+                                                ...word,
+                                                starred:
+                                                    !word.starred
+                                            }
+
+                                            : word
+                                    )
+                                )
+                            }}
+                            className="w-10 h-10 rounded-xl hover:bg-yellow-50 flex items-center justify-center transition"
+                        >
+
+                            <Star
+                                className={`
+                    w-5 h-5
+
+                    ${currentWord.starred
+                                        ? "fill-yellow-400 text-yellow-400"
+                                        : "text-gray-400"
+                                    }
+                `}
+                            />
+
+                        </button>
+
+                        {/* EDIT */}
+                        <button
+                            onClick={() => {
+
+                                setEditWord(
+                                    currentWord.word
+                                )
+
+                                setEditMeaning(
+                                    currentWord.meaning
+                                )
+
+                                setEditExample(
+                                    currentWord.example
+                                )
+
+                                setEditIPA(
+                                    currentWord.ipa
+                                )
+
+                                setEditWordType(
+                                    currentWord.word_type
+                                )
+
+                                setModalVisible(false)
+
+                                setEditingWord(true)
+
+                                requestAnimationFrame(() => {
+
+                                    requestAnimationFrame(() => {
+
+                                        setModalVisible(true)
+
+                                    })
+
+                                })
+                            }}
+                            className="w-10 h-10 rounded-xl hover:bg-blue-50 flex items-center justify-center transition"
+                        >
+
+                            <Pencil className="w-5 h-5 text-gray-500" />
+
+                        </button>
+
+                    </div>
+
+                </div>
 
                 <h2 className="text-2xl md:text-4xl font-black text-center break-words leading-tight">
 
@@ -907,258 +1198,236 @@ ${!showAnswer
 
                 {/* RESULT */}
                 {showAnswer && (
-
-                    <div
-    className={`
+                    <>
+                        <div
+                            className={`
         mt-5
         rounded-[28px]
         border
-        px-5 py-4
+        p-5
 
         ${selectedAnswer === currentWord.meaning
-            ? "bg-green-50 border-green-300"
-            : "bg-red-50 border-red-300"
-        }
+                                    ? "bg-green-50 border-green-300"
+                                    : "bg-red-50 border-red-300"
+                                }
     `}
->
+                        >
 
-    {/* HEADER */}
-    <div className="flex items-center gap-4">
+                            {/* HEADER */}
+                            <div className="flex items-center gap-4">
 
-        {/* ICON */}
-        <div
-            className={`
-                w-10 h-10 rounded-xl flex items-center justify-center shrink-0
+                                <div
+                                    className={`
+                w-11 h-11 rounded-2xl flex items-center justify-center shrink-0
 
                 ${selectedAnswer === currentWord.meaning
-                    ? "bg-green-100"
-                    : "bg-red-100"
-                }
+                                            ? "bg-green-100"
+                                            : "bg-red-100"
+                                        }
             `}
-        >
+                                >
 
-            {selectedAnswer === currentWord.meaning ? (
+                                    {selectedAnswer === currentWord.meaning ? (
 
-                <Check className="w-5 h-5 text-green-600" />
+                                        <Check className="w-5 h-5 text-green-600" />
 
-            ) : (
+                                    ) : (
 
-                <X className="w-5 h-5 text-red-600" />
+                                        <X className="w-5 h-5 text-red-600" />
 
-            )}
+                                    )}
 
-        </div>
+                                </div>
 
-        {/* LEFT */}
-        <div className="flex-1 min-w-0">
+                                <div className="flex-1">
 
-            {selectedAnswer === currentWord.meaning ? (
+                                    {selectedAnswer === currentWord.meaning ? (
 
-                <h3 className="font-black text-green-700 text-lg">
+                                        <h3 className="font-black text-green-700 text-xl">
 
-                    Chính xác!
+                                            Chính xác!
 
-                </h3>
+                                        </h3>
 
-            ) : (
+                                    ) : (
 
-                <div>
+                                        <p className="font-black text-red-700 text-lg">
 
-                    <p className="font-black text-red-700 text-lg">
+                                            Đáp án đúng:
+                                            <span className="ml-2 text-black">
 
-                        Đáp án đúng:
-                        <span className="ml-2 text-black">
-
-                            {currentWord.meaning}
-
-                        </span>
-
-                    </p>
-
-                </div>
-
-            )}
-
-        </div>
-
-        {/* RIGHT */}
-        <div className="flex items-center gap-2 shrink-0 self-start pt-1">
-
-            {currentWord.word_type && (
-
-                <span className="px-3 py-1 rounded-full bg-blue-50 text-blue-600 font-bold text-xs uppercase">
-
-                    {currentWord.word_type}
-
-                </span>
-
-            )}
-
-            {currentWord.ipa && (
-
-                <span className="text-gray-500 font-semibold whitespace-nowrap">
-
-                    {currentWord.ipa}
-
-                </span>
-
-            )}
-
-        </div>
-
-    </div>
-
-    {/* BODY */}
-    <div className="mt-4 pt-4 border-t border-black/5">
-
-        {/* MEANING + SOUND */}
-        <div className="flex items-start gap-4">
-
-            <div className="flex-1">
-
-                <p className="text-gray-400 font-bold text-sm">
-                    Nghĩa
-                </p>
-
-                <p className="text-2xl font-black mt-1">
-
-                    {currentWord.meaning}
-
-                </p>
-
-            </div>
-
-            <div className="flex items-center gap-3">
-
-                {/* SOUND */}
-                <button
-                    onClick={playAudio}
-                    className="w-10 h-10 rounded-xl bg-blue-50 hover:bg-blue-100 flex items-center justify-center transition"
-                >
-
-                    <Volume2 className="w-5 h-5 text-blue-600" />
-
-                </button>
-
-                {/* AUTO SOUND */}
-                <div className="relative group">
-
-                    <div className="
-                        absolute bottom-[120%] left-1/2
-                        -translate-x-1/2
-                        px-3 py-1.5 rounded-xl
-                        bg-black text-white
-                        text-xs font-semibold
-                        whitespace-nowrap
-                        opacity-0 pointer-events-none
-                        transition-all duration-200
-                        translate-y-1
-                        group-hover:opacity-100
-                        group-hover:translate-y-0
-                    ">
-
-                        Auto sound
-
-                    </div>
-
-                    <button
-                        onClick={() =>
-                            setAutoPlayAudio(
-                                !autoPlayAudio
-                            )
-                        }
-                        className={`
-                            relative w-11 h-6 rounded-full transition
-
-                            ${autoPlayAudio
-                                ? "bg-blue-600"
-                                : "bg-gray-200"
-                            }
-                        `}
-                    >
-
-                        <div
-                            className={`
-                                absolute top-0.5 w-5 h-5 rounded-full bg-white transition
-
-                                ${autoPlayAudio
-                                    ? "left-5"
-                                    : "left-0.5"
-                                }
-                            `}
-                        />
-
-                    </button>
-
-                </div>
-
-            </div>
-
-        </div>
-
-        {/* EXAMPLE */}
-        {currentWord.example && (
-
-            <div className="mt-5 bg-white/70 rounded-2xl px-4 py-3">
-
-                <p className="text-gray-400 font-bold text-sm mb-2">
-                    Ví dụ
-                </p>
-
-                <p className="text-gray-700 italic leading-relaxed">
-
-                    {currentWord.example
-                        .split(currentWord.word)
-                        .map(
-                            (
-                                part,
-                                index,
-                                arr
-                            ) => (
-
-                                <span key={index}>
-
-                                    {part}
-
-                                    {index <
-                                        arr.length - 1 && (
-
-                                            <span className="font-bold text-blue-600 drop-shadow-[0_0_16px_rgba(59,130,246,0.8)]">
-
-                                                {currentWord.word}
+                                                {currentWord.meaning}
 
                                             </span>
 
-                                        )}
+                                        </p>
 
-                                </span>
+                                    )}
 
-                            )
-                        )}
+                                </div>
 
-                </p>
+                                <button
+                                    onClick={nextQuestion}
+                                    className="w-[130px] h-11 rounded-2xl bg-blue-600 hover:bg-blue-700 text-white font-bold transition shrink-0"
+                                >
 
-            </div>
+                                    Tiếp tục
 
-        )}
+                                </button>
 
-        {/* NEXT */}
-        <div className="flex justify-end mt-5">
+                            </div>
 
-            <button
-                onClick={nextQuestion}
-                className="w-[150px] h-11 rounded-2xl bg-blue-600 hover:bg-blue-700 text-white font-bold transition"
-            >
+                        </div>
 
-                Tiếp tục
+                        {/* EXPLANATION */}
+                        <div className="mt-4 bg-white rounded-[28px] border border-gray-100 p-5">
 
-            </button>
+                            {/* TOP */}
+                            <div className="flex items-center gap-3">
 
-        </div>
+                                {currentWord.word_type && (
 
-    </div>
+                                    <span className="px-3 py-1 rounded-full bg-blue-50 text-blue-600 font-bold text-xs uppercase">
 
-</div>
+                                        {currentWord.word_type}
+
+                                    </span>
+
+                                )}
+
+                                {currentWord.ipa && (
+
+                                    <span className="text-gray-500 font-medium text-sm">
+
+                                        {currentWord.ipa}
+
+                                    </span>
+
+                                )}
+
+                                <div className="ml-auto flex items-center gap-3">
+
+                                    {/* SOUND */}
+                                    <button
+                                        onClick={playAudio}
+                                        className="w-10 h-10 rounded-xl bg-blue-50 hover:bg-blue-100 flex items-center justify-center transition"
+                                    >
+
+                                        <Volume2 className="w-5 h-5 text-blue-600" />
+
+                                    </button>
+
+                                    {/* SWITCH */}
+                                    <button
+                                        onClick={() =>
+                                            setAutoPlayAudio(
+                                                !autoPlayAudio
+                                            )
+                                        }
+                                        className={`
+                    relative w-11 h-6 rounded-full transition
+
+                    ${autoPlayAudio
+                                                ? "bg-blue-600"
+                                                : "bg-gray-200"
+                                            }
+                `}
+                                    >
+
+                                        <div
+                                            className={`
+                        absolute top-0.5 w-5 h-5 rounded-full bg-white transition
+
+                        ${autoPlayAudio
+                                                    ? "left-5"
+                                                    : "left-0.5"
+                                                }
+                    `}
+                                        />
+
+                                    </button>
+
+                                </div>
+
+                            </div>
+                            {/* WORD */}
+                            <div className="mt-5">
+
+                                <p className="text-gray-400 font-bold text-sm">
+                                    Từ vựng
+                                </p>
+
+                                <h3 className="text-2xl md:text-3xl font-black mt-1 break-words">
+
+                                    {currentWord.word}
+
+                                </h3>
+
+                            </div>
+                            {/* MEANING */}
+                            <div className="mt-5">
+
+                                <p className="text-gray-400 font-bold text-sm">
+                                    Nghĩa
+                                </p>
+
+                                <p className="text-2xl font-black mt-1">
+
+                                    {currentWord.meaning}
+
+                                </p>
+
+                            </div>
+
+                            {/* EXAMPLE */}
+                            {currentWord.example && (
+
+                                <div className="mt-5 bg-gray-50 rounded-2xl px-4 py-3">
+
+                                    <p className="text-gray-400 font-bold text-sm mb-2">
+                                        Ví dụ
+                                    </p>
+
+                                    <p className="text-gray-700 italic leading-relaxed">
+
+                                        {currentWord.example
+                                            .split(currentWord.word)
+                                            .map(
+                                                (
+                                                    part,
+                                                    index,
+                                                    arr
+                                                ) => (
+
+                                                    <span key={index}>
+
+                                                        {part}
+
+                                                        {index <
+                                                            arr.length - 1 && (
+
+                                                                <span className="font-bold text-blue-600 drop-shadow-[0_0_16px_rgba(59,130,246,0.8)]">
+
+                                                                    {currentWord.word}
+
+                                                                </span>
+
+                                                            )}
+
+                                                    </span>
+
+                                                )
+                                            )}
+
+                                    </p>
+
+                                </div>
+
+                            )}
+
+                        </div>
+
+                    </>
 
                 )}
 
@@ -1175,7 +1444,306 @@ ${!showAnswer
                 )}
 
             </div>
+            {/* EDIT MODAL */}
+            {editingWord && (
+
+                <div
+                    className={`
+fixed inset-0 z-50
+bg-black/40 backdrop-blur-sm
+flex items-center justify-center p-5
+
+transition-all duration-200
+
+${modalVisible
+                            ? "opacity-100"
+                            : "opacity-0"
+                        }
+`}
+                >
+
+                    <div
+                        className={`
+bg-white
+w-full
+max-w-xl
+rounded-[32px]
+max-h-[90vh]
+overflow-y-auto scroll-smooth
+
+scrollbar-thin
+scrollbar-thumb-gray-300 scrollbar-thumb-rounded-full
+scrollbar-track-transparent
+hover:scrollbar-thumb-gray-400
+
+transition-all duration-300 ease-[cubic-bezier(0.22,1,0.36,1)]
+
+${modalVisible
+                                ? "opacity-100 scale-100 translate-y-0"
+                                : "opacity-0 scale-95 translate-y-4"
+                            }
+`}
+                    >
+
+                        {/* HEADER */}
+                        <div className="sticky top-0 bg-white/90 backdrop-blur-xl z-10 px-6 pt-6 pb-4 border-b border-gray-100 flex items-center justify-between">
+
+                            <h2 className="text-2xl font-black">
+
+                                Chỉnh sửa từ
+
+                            </h2>
+
+                            <button
+                                onClick={() => {
+
+                                    setModalVisible(false)
+
+                                    setTimeout(() => {
+
+                                        setEditingWord(false)
+
+                                    }, 200)
+
+                                }}
+                                className="w-10 h-10 rounded-xl hover:bg-gray-100 flex items-center justify-center transition"
+                            >
+
+                                <X className="w-5 h-5 text-gray-500" />
+
+                            </button>
+
+                        </div>
+
+                        {/* BODY */}
+                        <div className="p-6">
+                            <div className="space-y-5">
+
+                                {/* WORD */}
+                                <div className="bg-gray-50 rounded-3xl p-4">
+
+                                    <p className="text-sm font-bold text-gray-400 mb-3">
+                                        Thuật ngữ
+                                    </p>
+
+                                    <input
+                                        value={editWord}
+                                        onChange={(e) =>
+                                            setEditWord(
+                                                e.target.value
+                                            )
+                                        }
+                                        placeholder="Word"
+                                        className="w-full h-14 rounded-2xl border border-gray-200 px-4 font-semibold bg-white"
+                                    />
+
+                                </div>
+
+                                {/* MEANING */}
+                                <div className="bg-gray-50 rounded-3xl p-4">
+
+                                    <p className="text-sm font-bold text-gray-400 mb-3">
+                                        Định nghĩa
+                                    </p>
+
+                                    <textarea
+                                        value={editMeaning}
+                                        onChange={(e) =>
+                                            setEditMeaning(
+                                                e.target.value
+                                            )
+                                        }
+                                        placeholder="Meaning"
+                                        className="w-full min-h-[120px] rounded-2xl border border-gray-200 px-4 py-4 font-semibold bg-white resize-none"
+                                    />
+
+                                </div>
+
+                                {/* IPA */}
+                                <div className="bg-gray-50 rounded-3xl p-4">
+
+                                    <p className="text-sm font-bold text-gray-400 mb-3">
+                                        Phát âm
+                                    </p>
+
+                                    <input
+                                        value={editIPA}
+                                        onChange={(e) =>
+                                            setEditIPA(
+                                                e.target.value
+                                            )
+                                        }
+                                        placeholder="IPA"
+                                        className="w-full h-14 rounded-2xl border border-gray-200 px-4 font-semibold bg-white"
+                                    />
+
+                                </div>
+
+                                {/* WORD TYPE */}
+                                <div className="bg-gray-50 rounded-3xl p-4">
+
+                                    <p className="text-sm font-bold text-gray-400 mb-3">
+                                        Loại từ
+                                    </p>
+
+                                    <input
+                                        value={editWordType}
+                                        onChange={(e) =>
+                                            setEditWordType(
+                                                e.target.value
+                                            )
+                                        }
+                                        placeholder="Word type"
+                                        className="w-full h-14 rounded-2xl border border-gray-200 px-4 font-semibold bg-white"
+                                    />
+
+                                </div>
+
+                                {/* EXAMPLE */}
+                                <div className="bg-gray-50 rounded-3xl p-4">
+
+                                    <p className="text-sm font-bold text-gray-400 mb-3">
+                                        Ví dụ
+                                    </p>
+
+                                    <textarea
+                                        value={editExample}
+                                        onChange={(e) =>
+                                            setEditExample(
+                                                e.target.value
+                                            )
+                                        }
+                                        placeholder="Example"
+                                        className="w-full min-h-[140px] rounded-2xl border border-gray-200 px-4 py-4 font-semibold bg-white resize-none"
+                                    />
+
+                                </div>
+
+                                {/* SYNONYMS */}
+                                <div className="bg-gray-50 rounded-3xl p-4">
+
+                                    <p className="text-sm font-bold text-gray-400 mb-3">
+                                        Từ đồng nghĩa
+                                    </p>
+
+                                    <input
+                                        placeholder="từ1, từ2, từ3..."
+                                        className="w-full h-14 rounded-2xl border border-gray-200 px-4 font-semibold bg-white"
+                                    />
+
+                                    <p className="text-xs text-gray-400 mt-2 font-medium">
+                                        Phân cách bằng dấu phẩy
+                                    </p>
+
+                                </div>
+
+                                <div className="flex justify-end gap-3 mt-6">
+
+                                    <button
+                                        onClick={() =>
+                                            setEditingWord(
+                                                false
+                                            )
+                                        }
+                                        className="h-12 px-5 rounded-2xl bg-gray-100 font-bold"
+                                    >
+
+                                        Hủy
+
+                                    </button>
+
+                                    <button
+                                        onClick={async () => {
+
+                                            await supabase
+                                                .from(
+                                                    "vocab_words"
+                                                )
+                                                .update({
+                                                    word: editWord,
+                                                    meaning:
+                                                        editMeaning,
+                                                    ipa: editIPA,
+                                                    example:
+                                                        editExample,
+                                                    word_type:
+                                                        editWordType,
+                                                })
+                                                .eq(
+                                                    "id",
+                                                    currentWord.id
+                                                )
+
+                                            setQueue((prev) =>
+                                                prev.map((word) =>
+
+                                                    word.id === currentWord.id
+
+                                                        ? {
+                                                            ...word,
+                                                            word: editWord,
+                                                            meaning:
+                                                                editMeaning,
+                                                            ipa: editIPA,
+                                                            example:
+                                                                editExample,
+                                                            word_type:
+                                                                editWordType,
+                                                        }
+
+                                                        : word
+                                                )
+                                            )
+
+                                            setAllWords((prev) =>
+                                                prev.map((word) =>
+
+                                                    word.id === currentWord.id
+
+                                                        ? {
+                                                            ...word,
+                                                            word: editWord,
+                                                            meaning:
+                                                                editMeaning,
+                                                            ipa: editIPA,
+                                                            example:
+                                                                editExample,
+                                                            word_type:
+                                                                editWordType,
+                                                        }
+
+                                                        : word
+                                                )
+                                            )
+
+                                            setModalVisible(false)
+
+                                            setTimeout(() => {
+
+                                                setEditingWord(false)
+
+                                            }, 200)
+                                        }}
+                                        className="h-12 px-5 rounded-2xl bg-blue-600 text-white font-bold"
+                                    >
+
+                                        Lưu
+
+                                    </button>
+
+                                </div>
+
+                            </div>
+
+                        </div>
+
+                    </div>
+
+                </div>
+            )}
 
         </section>
+
     )
+
 }

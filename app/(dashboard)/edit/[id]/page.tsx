@@ -267,6 +267,7 @@ const [showTags, setShowTags] =
                         tag,
                         icon,
                         is_public: isPublic,
+                        updated_at: new Date(),
                     })
                     .eq("id", id)
 
