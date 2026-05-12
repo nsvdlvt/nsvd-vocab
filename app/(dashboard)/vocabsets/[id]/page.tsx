@@ -97,7 +97,18 @@ export default function SetPage({
           Chế độ học 😎🔥
         </h2>
 
-        <div className="grid grid-cols-2 gap-3 w-full">
+        <div
+          className="
+    grid
+    gap-3
+    md:gap-4
+    w-full
+  "
+          style={{
+            gridTemplateColumns:
+              "repeat(auto-fit,minmax(180px,1fr))"
+          }}
+        >
 
           {/* FLASHCARD */}
           <button
@@ -108,12 +119,12 @@ export default function SetPage({
             }
             className="w-full max-w-full min-w-0 bg-white border border-gray-100 hover:-translate-y-1 hover:shadow-xl transition-all rounded-[24px] p-4 text-left min-h-[140px] md:min-h-[180px]"
           >
-            
-            <div className="w-12 h-12 md:w-14 md:h-14 rounded-2xl bg-blue-50 flex items-center justify-center mb-4">
-  <Layers3 className="w-7 h-7 text-blue-600" />
-</div>
 
-            <h3 className="font-black text-lg">
+            <div className="w-12 h-12 md:w-14 md:h-14 rounded-2xl bg-blue-50 flex items-center justify-center mb-4">
+              <Layers3 className="w-7 h-7 text-blue-600" />
+            </div>
+
+            <h3 className="font-black text-sm md:text-lg">
               Flashcard
             </h3>
 
@@ -127,8 +138,8 @@ export default function SetPage({
             className="w-full max-w-full min-w-0 bg-white border border-gray-100 hover:-translate-y-1 hover:shadow-xl transition-all rounded-[24px] p-4 text-left min-h-[140px] md:min-h-[180px]"
           >
             <div className="w-12 h-12 md:w-14 md:h-14 rounded-2xl bg-blue-50 flex items-center justify-center mb-4">
-  <BookOpen className="w-7 h-7 text-blue-600" />
-</div>
+              <BookOpen className="w-7 h-7 text-blue-600" />
+            </div>
 
             <h3 className="font-black text-sm md:text-lg">
               Học
@@ -144,8 +155,8 @@ export default function SetPage({
             className="w-full max-w-full min-w-0 bg-white border border-gray-100 hover:-translate-y-1 hover:shadow-xl transition-all rounded-[24px] p-4 text-left min-h-[140px] md:min-h-[180px]"
           >
             <div className="w-12 h-12 md:w-14 md:h-14 rounded-2xl bg-blue-50 flex items-center justify-center mb-4">
-  <PenSquare className="w-7 h-7 text-blue-600" />
-</div>
+              <PenSquare className="w-7 h-7 text-blue-600" />
+            </div>
 
             <h3 className="font-black text-sm md:text-lg">
               Điền từ
@@ -161,8 +172,8 @@ export default function SetPage({
             className="w-full max-w-full min-w-0 bg-white border border-gray-100 hover:-translate-y-1 hover:shadow-xl transition-all rounded-[24px] p-4 text-left min-h-[140px] md:min-h-[180px]"
           >
             <div className="w-12 h-12 md:w-14 md:h-14 rounded-2xl bg-blue-50 flex items-center justify-center mb-4">
-  <Headphones className="w-7 h-7 text-blue-600" />
-</div>
+              <Headphones className="w-7 h-7 text-blue-600" />
+            </div>
 
             <h3 className="font-black text-sm md:text-lg">
               Nghe chép
@@ -178,8 +189,8 @@ export default function SetPage({
             className="w-full max-w-full min-w-0 bg-white border border-gray-100 hover:-translate-y-1 hover:shadow-xl transition-all rounded-[24px] p-4 text-left min-h-[140px] md:min-h-[180px]"
           >
             <div className="w-12 h-12 md:w-14 md:h-14 rounded-2xl bg-blue-50 flex items-center justify-center mb-4">
-  <ClipboardCheck className="w-7 h-7 text-blue-600" />
-</div>
+              <ClipboardCheck className="w-7 h-7 text-blue-600" />
+            </div>
 
             <h3 className="font-black text-sm md:text-lg">
               Kiểm tra
