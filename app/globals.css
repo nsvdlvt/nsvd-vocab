@@ -226,3 +226,19 @@ body {
 .animate-fade-out {
   animation: fadeOut 0.25s ease forwards;
 }
+html,
+body {
+  width: 100%;
+  overflow-x: hidden;
+}
+
+* {
+  box-sizing: border-box;
+}
+body {
+  overflow-x: hidden;
+}
+
+#__next {
+  overflow-x: hidden;
+}

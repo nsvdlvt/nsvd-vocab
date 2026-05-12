@@ -78,7 +78,7 @@ export default function SetPage({
   }
 
   return (
-    <section className="w-full max-w-full p-4 md:p-8 pb-28 overflow-x-hidden">
+    <section className="w-full p-4 md:p-8 pb-28">
 
       {/* TOP */}
       <div className="mb-10">
@@ -204,12 +204,12 @@ export default function SetPage({
         </div>
       </div>
       {/* WORDS */}
-      <div className="space-y-6">
+      <div className="space-y-5 w-full">
 
         {words.map((word, index) => (
           <div
             key={word.id}
-            className="bg-white rounded-[24px] md:rounded-[40px] border border-gray-100 shadow-sm p-6 md:p-8"
+            className="w-full overflow-hidden bg-white rounded-[28px] md:rounded-[40px] border border-gray-100 shadow-sm p-4 md:p-8"
           >
 
             {/* TOP */}
