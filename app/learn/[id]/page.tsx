@@ -99,18 +99,10 @@ export default function LearnPage({
 
     const [wrongCount, setWrongCount] =
         useState(0)
-    const newCount =
-        queue.filter(
-            (w) => w.status === "new"
-        ).length
-
-    const learningCount =
-        queue.filter(
-            (w) =>
-                w.status === "learning"
-        ).length
-
-
+    const [
+        sessionCompleted,
+        setSessionCompleted
+    ] = useState(false)
     const masteredCount =
 
         queue.filter(
@@ -121,28 +113,65 @@ export default function LearnPage({
         useState(0)
     const progress =
 
-        Math.max(
-            0,
+    totalWords === 0
 
-            Math.min(
-                100,
+        ? 0
 
-                (
-                    (
-                        correctCount -
-                        wrongCount * 0.35
-                    ) /
+        :
 
-                    (totalWords * 4)
-                ) * 100
+        (
+            queue.reduce(
+                (sum, word) =>
+
+                    sum +
+                    (word.memoryStrength / 4),
+
+                0
             )
-        )
+
+            / totalWords
+
+        ) * 100
     useEffect(() => {
 
         fetchWords()
 
     }, [])
+    useEffect(() => {
 
+    if (
+        loading ||
+        totalWords === 0
+    ) return
+
+    const hasUnlearnedWords =
+
+        queue.some(
+            (w) =>
+                w.memoryStrength < 4
+        )
+
+    if (
+    !hasUnlearnedWords &&
+    !showAnswer
+) {
+
+        const timeout =
+            setTimeout(() => {
+
+                setSessionCompleted(true)
+
+            }, 500)
+
+        return () =>
+            clearTimeout(timeout)
+    }
+
+}, [
+    queue,
+    totalWords,
+    loading
+])
     const fetchWords = async () => {
         const {
             data: { user }
@@ -291,14 +320,29 @@ export default function LearnPage({
             (w) =>
                 w.memoryStrength >= 4
         ).length
+    const learningWords =
+
+    queue.filter(
+        (w) =>
+
+            w.memoryStrength >= 1 &&
+            w.memoryStrength < 4
+    ).length
+
+    const weakWords =
+
+        queue.filter(
+            (w) =>
+                w.memoryStrength === 0
+        ).length
     useEffect(() => {
 
         if (
             !loading &&
-            trulyMastered >= totalWords
+            progress >= 100
         ) {
 
-            handleComplete()
+            return
         }
 
     }, [
@@ -334,32 +378,48 @@ export default function LearnPage({
         userId,
         loading
     ])
-    useEffect(() => {
 
+    useEffect(() => {
+if (
+    loading ||
+    allWords.length < 2
+) return
         if (
             !currentWord ||
             trulyMastered >= totalWords
         )
             return
+        if (showAnswer)
+            return
+        const uniqueAnswers =
+
+            Array.from(
+
+                new Set(
+
+                    allWords.map(
+                        (w) => w.meaning
+                    )
+
+                )
+
+            ).filter(
+                (meaning) =>
+                    meaning !==
+                    currentWord.meaning
+            )
 
         const wrongAnswers =
-            allWords
-                .filter(
-                    (w) =>
-                        w.id !==
-                        currentWord.id
-                )
+
+            uniqueAnswers
                 .sort(
                     () =>
                         Math.random() - 0.5
                 )
                 .slice(0, 3)
-                .map(
-                    (w) =>
-                        w.meaning
-                )
 
         const shuffled =
+
             [
                 currentWord.meaning,
                 ...wrongAnswers
@@ -370,69 +430,13 @@ export default function LearnPage({
 
         setOptions(shuffled)
 
-    }, [currentWord?.id])
-    useEffect(() => {
-
-        const handleKey =
-            (e: KeyboardEvent) => {
-
-                if (
-                    showAnswer &&
-                    e.code === "Space"
-                ) {
-
-                    e.preventDefault()
-
-                    nextQuestion()
-                }
-                if (
-                    editingWord &&
-                    e.key === "Escape"
-                ) {
-
-                    setModalVisible(false)
-
-                    setTimeout(() => {
-
-                        setEditingWord(false)
-
-                    }, 200)
-                }
-                if (
-                    !showAnswer
-                ) {
-
-                    const index =
-                        Number(e.key) - 1
-
-                    if (
-                        index >= 0 &&
-                        index < options.length
-                    ) {
-
-                        handleAnswer(
-                            options[index]
-                        )
-                    }
-                }
-            }
-
-        window.addEventListener(
-            "keydown",
-            handleKey
-        )
-
-        return () =>
-            window.removeEventListener(
-                "keydown",
-                handleKey
-            )
-
     }, [
-        options,
+        currentWord?.id,
+        allWords,
         showAnswer,
-        editingWord
+        loading
     ])
+
     const saveProgress = async (
         updatedQueue:
             LearningWord[]
@@ -603,26 +607,6 @@ export default function LearnPage({
                     progress.id
                 )
         }
-    const handleComplete =
-        async () => {
-
-            if (!userId)
-                return
-
-            await supabase
-                .from(
-                    "learning_sessions"
-                )
-                .delete()
-                .eq(
-                    "user_id",
-                    userId
-                )
-                .eq(
-                    "set_id",
-                    id
-                )
-        }
     const playAudio = () => {
 
         speechSynthesis.cancel()
@@ -652,8 +636,21 @@ export default function LearnPage({
         showAnswer
     ])
     const nextQuestion = () => {
+const allMastered =
 
+    queue.every(
+        (w) =>
+            w.memoryStrength >= 4
+    )
+
+if (allMastered) {
+
+    setSessionCompleted(true)
+
+    return
+}
         setSelectedAnswer(null)
+        setOptions([])
 
         setShowAnswer(false)
 
@@ -742,31 +739,32 @@ export default function LearnPage({
                 ) {
                     return word
                 }
-const nextStrength =
-    isCorrect
-        ? Math.min(
-            word.memoryStrength + 1,
-            4
-        )
-        : Math.max(
-            word.memoryStrength - 2,
-            0
-        )
+                const nextStrength =
+                    isCorrect
+                        ? Math.min(
+                            word.memoryStrength + 1,
+                            4
+                        )
+                        : Math.max(
+                            word.memoryStrength - 2,
+                            0
+                        )
 
-if (
+                if (
 
-    word.memoryStrength >= 4 ||
+                    word.memoryStrength >= 4 ||
 
-    nextStrength >= 4
+                    nextStrength >= 4
 
-) {
+                ) {
 
-    updateSpacedRepetition(
-        currentWord.id,
-        isCorrect
-    )
-}
+                    updateSpacedRepetition(
+                        currentWord.id,
+                        isCorrect
+                    )
+                }
                 if (isCorrect) {
+
                     return {
                         ...word,
 
@@ -798,6 +796,7 @@ if (
             })
         })
 
+
         if (isCorrect) {
             navigator.vibrate?.(30)
             setCorrectCount(
@@ -823,7 +822,7 @@ if (
 
             setShowAnswer(true)
             if (
-                currentWord.memoryStrength >= 4
+                (currentWord?.memoryStrength || 0) >= 4
             ) {
 
                 updateSpacedRepetition(
@@ -860,105 +859,583 @@ if (
                 })
             })
         }
-    if (loading) {
+    const renderWordSection = (
+        title: string,
+        words: LearningWord[],
+        badgeColor: string
+    ) => {
+
+        if (words.length === 0)
+            return null
 
         return (
 
-            <div className="min-h-screen flex items-center justify-center">
+            <div className="mt-10">
 
-                <div className="w-16 h-16 border-4 border-blue-200 border-t-blue-600 rounded-full animate-spin" />
+                <div className="flex items-center gap-3 mb-5">
+
+                    <h2 className="text-xl font-black">
+
+                        {title}
+
+                    </h2>
+
+                    <span className={`
+                    px-3 py-1 rounded-full shadow-sm text-sm font-bold
+                    ${badgeColor}
+                `}>
+
+                        {words.length} thẻ
+
+                    </span>
+
+                </div>
+
+                <div className="space-y-3">
+
+                    {words
+                        .slice(0, 3)
+                        .map((word) => (
+
+                            <div
+                                key={word.id}
+                                className="
+bg-white
+border border-gray-100
+rounded-3xl
+p-5
+
+shadow-[0_4px_20px_rgba(0,0,0,0.03)]
+
+hover:shadow-[0_8px_30px_rgba(59,130,246,0.08)]
+hover:border-blue-100
+
+transition-all
+duration-300
+"
+                            >
+
+                                <p className="font-black text-lg">
+
+                                    {word.word}
+
+                                </p>
+
+                                <p className="text-gray-500 mt-1">
+
+                                    {word.meaning}
+
+                                </p>
+
+                            </div>
+
+                        ))}
+
+                </div>
+
+                {words.length > 3 && (
+
+                    <p className="text-center text-gray-400 font-medium mt-4">
+
+                        +{words.length - 3} từ khác
+
+                    </p>
+
+                )}
 
             </div>
 
         )
     }
-    if (
-        trulyMastered >=
-        totalWords
-    ) {
+    if (loading) {
+
+    return (
+
+        <div className="
+min-h-screen
+bg-[#f5f9ff]
+
+flex
+items-center
+justify-center
+overflow-hidden
+relative
+">
+
+            {/* BACKGROUND GLOW */}
+            <div className="
+absolute
+w-[420px]
+h-[420px]
+rounded-full
+
+bg-blue-200/30
+blur-3xl
+
+animate-pulse
+" />
+
+            {/* CONTENT */}
+            <div className="relative z-10 flex flex-col items-center">
+
+                {/* LOGO */}
+                <div className="
+relative
+
+w-24
+h-24
+
+rounded-[32px]
+
+bg-white
+
+shadow-[0_20px_60px_rgba(59,130,246,0.18)]
+
+flex
+items-center
+justify-center
+
+animate-[float_3s_ease-in-out_infinite]
+">
+
+                    
+
+                    {/* ICON */}
+                    {/* LOGO */}
+<div className="
+relative
+
+w-20
+h-20
+
+rounded-[24px]
+
+bg-white
+
+flex
+items-center
+justify-center
+
+shadow-[0_12px_40px_rgba(59,130,246,0.18)]
+
+overflow-hidden
+">
+
+    {/* GLOW */}
+    <div className="
+absolute
+inset-0
+
+bg-gradient-to-br
+from-blue-400/10
+to-cyan-300/10
+" />
+
+    <img
+        src="/logo.png"
+        alt="Logo"
+        className="
+w-12
+h-12
+object-contain
+
+drop-shadow-[0_0_18px_rgba(59,130,246,0.35)]
+"
+    />
+
+</div>
+
+                </div>
+
+                {/* TEXT */}
+                <div className="mt-8 text-center">
+
+                    <h2 className="
+text-2xl
+font-black
+text-gray-800
+tracking-tight
+">
+
+                        Đang tải bài học
+
+                    </h2>
+
+                    <p className="
+mt-2
+text-gray-400
+font-medium
+">
+
+                        Chuẩn bị hệ thống học tập...
+
+                    </p>
+
+                </div>
+
+                {/* DOTS */}
+                <div className="flex gap-2 mt-6">
+
+                    <div className="
+w-3 h-3 rounded-full
+bg-blue-500
+animate-bounce
+" />
+
+                    <div className="
+w-3 h-3 rounded-full
+bg-cyan-400
+animate-bounce
+[animation-delay:0.15s]
+" />
+
+                    <div className="
+w-3 h-3 rounded-full
+bg-blue-300
+animate-bounce
+[animation-delay:0.3s]
+" />
+
+                </div>
+
+            </div>
+
+        </div>
+
+    )
+}
+    if (sessionCompleted) {
 
         return (
 
-            <section className="min-h-screen bg-[#f5f9ff] p-6 flex items-center justify-center">
+            <section className="min-h-screen bg-[#f5f9ff] p-5 md:p-10">
 
-                <div className="bg-white rounded-[40px] shadow-xl p-10 text-center max-w-xl w-full">
+                <div className="max-w-5xl mx-auto">
 
-                    <div className="w-24 h-24 rounded-full bg-blue-100 mx-auto flex items-center justify-center">
+                    <h1 className="text-3xl font-black mb-8">
 
-                        <Brain className="w-12 h-12 text-blue-600" />
+                        Tổng kết
 
-                    </div>
-
-                    <h1 className="text-4xl font-black mt-8">
-                        Hoàn thành 🎉
                     </h1>
 
-                    <div className="grid grid-cols-2 gap-5 mt-10">
+                    {/* STATS */}
+                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
 
-                        <div className="bg-green-50 rounded-3xl p-6">
+                        <div className="
+bg-white
+rounded-3xl
+p-5
 
-                            <p className="text-green-600 font-bold">
-                                Đúng
+border border-gray-100
+
+shadow-[0_4px_20px_rgba(0,0,0,0.03)]
+
+hover:-translate-y-1
+hover:shadow-[0_12px_40px_rgba(59,130,246,0.12)]
+hover:border-blue-100
+
+transition-all
+duration-300
+">
+
+                            <p className="text-gray-400 font-medium">
+                                Tổng thể
                             </p>
 
-                            <h2 className="text-4xl font-black mt-2">
-                                {correctCount}
+                            <h2 className="text-3xl font-black mt-2">
+
+                                {totalWords}
+
                             </h2>
 
                         </div>
 
-                        <div className="bg-red-50 rounded-3xl p-6">
+                        <div className="
+bg-white
+rounded-3xl
+p-5
 
-                            <p className="text-red-600 font-bold">
-                                Sai
+border border-gray-100
+
+shadow-[0_4px_20px_rgba(0,0,0,0.03)]
+
+hover:-translate-y-1
+hover:shadow-[0_12px_40px_rgba(59,130,246,0.12)]
+hover:border-blue-100
+
+transition-all
+duration-300
+">
+
+                            <p className="text-green-600 font-medium">
+                                Đã hoàn thành
                             </p>
 
-                            <h2 className="text-4xl font-black mt-2">
-                                {wrongCount}
+                            <h2 className="text-3xl font-black mt-2 text-green-600">
+
+                                {trulyMastered}
+
                             </h2>
-                            <div className="flex justify-center mt-5">
 
-                                <span className={`
-        px-4 py-2 rounded-full text-sm font-bold
+                        </div>
 
-        ${currentWord.memoryStrength >= 4
-                                        ? "bg-green-100 text-green-700"
-                                        : currentWord.memoryStrength >= 2
-                                            ? "bg-yellow-100 text-yellow-700"
-                                            : "bg-red-100 text-red-700"
-                                    }
-    `}>
+                        <div className="
+bg-white
+rounded-3xl
+p-5
 
-                                    {currentWord.memoryStrength >= 4
-                                        ? "Đã thuộc"
-                                        : currentWord.memoryStrength >= 2
-                                            ? "Đang nhớ"
-                                            : "Mới học"
-                                    }
+border border-gray-100
 
-                                </span>
+shadow-[0_4px_20px_rgba(0,0,0,0.03)]
 
-                            </div>
+hover:-translate-y-1
+hover:shadow-[0_12px_40px_rgba(59,130,246,0.12)]
+hover:border-blue-100
+
+transition-all
+duration-300
+">
+
+                            <p className="text-orange-500 font-medium">
+                                Chưa hoàn thành
+                            </p>
+
+                            <h2 className="text-3xl font-black mt-2 text-orange-500">
+
+                                {learningWords + weakWords}
+
+                            </h2>
+
+                        </div>
+
+                        <div className="
+bg-white
+rounded-3xl
+p-5
+
+border border-gray-100
+
+shadow-[0_4px_20px_rgba(0,0,0,0.03)]
+
+hover:-translate-y-1
+hover:shadow-[0_12px_40px_rgba(59,130,246,0.12)]
+hover:border-blue-100
+
+transition-all
+duration-300
+">
+
+                            <p className="text-blue-500 font-medium">
+                                Phần còn lại
+                            </p>
+
+                            <h2 className="text-3xl font-black mt-2 text-blue-500">
+
+                                {totalWords - trulyMastered}
+
+                            </h2>
 
                         </div>
 
                     </div>
 
-                    <button
-                        onClick={() =>
-                            router.back()
-                        }
-                        className="mt-10 w-full h-16 rounded-2xl bg-blue-600 text-white font-bold text-lg hover:bg-blue-700 transition"
-                    >
-                        Quay lại
-                    </button>
+                    {/* PROGRESS */}
+                    <div className="mt-8">
+
+                        <div className="flex items-center justify-between mb-2">
+
+                            <p className="font-semibold text-gray-500">
+                                Tiến độ
+                            </p>
+
+                            <p className="font-black">
+
+                                {Math.round(
+                                    (trulyMastered / totalWords) * 100
+                                )}%
+
+                            </p>
+
+                        </div>
+
+                        <div className="w-full h-4 rounded-full bg-gray-100 overflow-hidden">
+
+                            <div
+                                className="
+h-full
+rounded-full
+
+bg-gradient-to-r
+from-blue-500
+via-blue-400
+to-cyan-400
+
+shadow-[0_0_24px_rgba(59,130,246,0.35)]
+
+transition-all
+duration-700
+"
+                                style={{
+                                    width: `${(trulyMastered / totalWords) * 100}%`
+                                }}
+                            />
+
+                        </div>
+
+                    </div>
+
+                    {/* ACTIONS */}
+                    <div className="grid grid-cols-2 gap-4 mt-8">
+
+                        <button
+                            onClick={() => {
+
+                                const shouldReset =
+
+                                    trulyMastered >= totalWords
+
+                                if (shouldReset) {
+
+                                    const resetQueue =
+
+                                        [...queue]
+
+                                            .sort(
+                                                () =>
+                                                    Math.random() - 0.5
+                                            )
+
+                                            .map((word) => ({
+
+                                                ...word,
+
+                                                memoryStrength: 0,
+
+                                                hasSeen: false,
+
+                                                status: "new",
+
+                                                questionType: "mcq",
+                                            }))
+
+                                    setQueue(resetQueue)
+
+                                }
+
+                                setSessionCompleted(false)
+
+                                setCorrectCount(0)
+
+                                setWrongCount(0)
+
+                                setStreak(0)
+
+                                setShowAnswer(false)
+
+                                setSelectedAnswer(null)
+                            }}
+                            className="
+h-16
+rounded-2xl
+
+bg-black
+text-white
+
+font-bold
+text-lg
+
+hover:scale-[1.02]
+hover:shadow-[0_12px_30px_rgba(0,0,0,0.18)]
+
+active:scale-[0.98]
+
+transition-all
+duration-300
+"
+                        >
+
+                            {trulyMastered >= totalWords
+                                ? "Học lại"
+                                : "Tiếp tục học"}
+
+                        </button>
+
+                        <button
+                            onClick={() =>
+                                router.back()
+                            }
+                            className="
+h-16
+rounded-2xl
+
+bg-white
+border border-gray-100
+
+font-bold
+text-lg
+
+hover:border-blue-200
+hover:bg-blue-50
+hover:-translate-y-0.5
+
+transition-all
+duration-300
+"
+                        >
+
+                            ← Quay lại
+
+                        </button>
+
+                    </div>
+
+                    {/* LEARNING */}
+                    {renderWordSection(
+                        "Từ đang học",
+
+                        queue.filter(
+                            (w) =>
+                                w.memoryStrength >= 1 &&
+w.memoryStrength < 4
+                        ),
+
+                        "bg-blue-100 text-blue-600"
+                    )}
+
+                    {/* MASTERED */}
+                    {renderWordSection(
+                        "Từ đã thuộc",
+
+                        queue.filter(
+                            (w) =>
+                                w.memoryStrength >= 4
+                        ),
+
+                        "bg-green-100 text-green-600"
+                    )}
+
+                    {/* NEW */}
+                    {renderWordSection(
+                        "Từ chưa học",
+
+                        queue.filter(
+                            (w) =>
+                                w.memoryStrength === 0
+                        ),
+
+                        "bg-gray-100 text-gray-600"
+                    )}
 
                 </div>
 
             </section>
-        )
-    }
 
+        )
+        
+    }
+if (!currentWord) {
+    return null
+}
     return (
 
         <section className="min-h-screen bg-[#f5f9ff] p-5 md:p-10">
@@ -1196,12 +1673,29 @@ ${!showAnswer
                 {/* RESULT */}
                 {showAnswer && (
                     <>
+
+                        {/* CONTINUE BUTTON */}
+                        <div className="flex justify-center mt-4">
+
+                            <button
+                                onClick={nextQuestion}
+                                className="h-11 px-7 rounded-2xl bg-blue-600 hover:bg-blue-700 text-white font-bold shadow-lg transition"
+                            >
+
+                                Tiếp tục
+
+                            </button>
+
+                        </div>
+
+                        {/* RESULT + EXPLANATION */}
                         <div
                             className={`
-        mt-5
+        mt-6
         rounded-[28px]
         border
         p-5
+        relative
 
         ${selectedAnswer === currentWord.meaning
                                     ? "bg-green-50 border-green-300"
@@ -1211,11 +1705,12 @@ ${!showAnswer
                         >
 
                             {/* HEADER */}
-                            <div className="flex items-center gap-4">
+                            <div className="flex items-center gap-4 mt-2">
 
                                 <div
                                     className={`
-                w-11 h-11 rounded-2xl flex items-center justify-center shrink-0
+                w-11 h-11 rounded-2xl
+                flex items-center justify-center shrink-0
 
                 ${selectedAnswer === currentWord.meaning
                                             ? "bg-green-100"
@@ -1263,171 +1758,162 @@ ${!showAnswer
 
                                 </div>
 
-                                <button
-                                    onClick={nextQuestion}
-                                    className="w-[130px] h-11 rounded-2xl bg-blue-600 hover:bg-blue-700 text-white font-bold transition shrink-0"
-                                >
-
-                                    Tiếp tục
-
-                                </button>
-
                             </div>
 
-                        </div>
+                            {/* EXPLANATION */}
+                            <div className="mt-7 bg-white/70 rounded-[24px] p-5">
 
-                        {/* EXPLANATION */}
-                        <div className="mt-4 bg-white rounded-[28px] border border-gray-100 p-5">
+                                {/* TOP */}
+                                <div className="flex items-start justify-between gap-4">
 
-                            {/* TOP */}
-                            <div className="flex items-center gap-3">
+                                    <div>
 
-                                {currentWord.word_type && (
+                                        <p className="text-gray-400 font-bold text-sm">
+                                            Từ vựng
+                                        </p>
 
-                                    <span className="px-3 py-1 rounded-full bg-blue-50 text-blue-600 font-bold text-xs uppercase">
+                                        <h3 className="text-3xl font-black mt-1">
 
-                                        {currentWord.word_type}
+                                            {currentWord.word}
 
-                                    </span>
+                                        </h3>
 
-                                )}
+                                        <div className="flex items-center gap-3 mt-2">
 
-                                {currentWord.ipa && (
+                                            {currentWord.word_type && (
 
-                                    <span className="text-gray-500 font-medium text-sm">
+                                                <span className="px-3 py-1 rounded-full shadow-sm bg-blue-50 text-blue-600 font-bold text-xs uppercase">
 
-                                        {currentWord.ipa}
+                                                    {currentWord.word_type}
 
-                                    </span>
+                                                </span>
 
-                                )}
-
-                                <div className="ml-auto flex items-center gap-3">
-
-                                    {/* SOUND */}
-                                    <button
-                                        onClick={playAudio}
-                                        className="w-10 h-10 rounded-xl bg-blue-50 hover:bg-blue-100 flex items-center justify-center transition"
-                                    >
-
-                                        <Volume2 className="w-5 h-5 text-blue-600" />
-
-                                    </button>
-
-                                    {/* SWITCH */}
-                                    <button
-                                        onClick={() =>
-                                            setAutoPlayAudio(
-                                                !autoPlayAudio
-                                            )
-                                        }
-                                        className={`
-                    relative w-11 h-6 rounded-full transition
-
-                    ${autoPlayAudio
-                                                ? "bg-blue-600"
-                                                : "bg-gray-200"
-                                            }
-                `}
-                                    >
-
-                                        <div
-                                            className={`
-                        absolute top-0.5 w-5 h-5 rounded-full bg-white transition
-
-                        ${autoPlayAudio
-                                                    ? "left-5"
-                                                    : "left-0.5"
-                                                }
-                    `}
-                                        />
-
-                                    </button>
-
-                                </div>
-
-                            </div>
-                            {/* WORD */}
-                            <div className="mt-5">
-
-                                <p className="text-gray-400 font-bold text-sm">
-                                    Từ vựng
-                                </p>
-
-                                <h3 className="text-2xl md:text-3xl font-black mt-1 break-words">
-
-                                    {currentWord.word}
-
-                                </h3>
-
-                            </div>
-                            {/* MEANING */}
-                            <div className="mt-5">
-
-                                <p className="text-gray-400 font-bold text-sm">
-                                    Nghĩa
-                                </p>
-
-                                <p className="text-2xl font-black mt-1">
-
-                                    {currentWord.meaning}
-
-                                </p>
-
-                            </div>
-
-                            {/* EXAMPLE */}
-                            {currentWord.example && (
-
-                                <div className="mt-5 bg-gray-50 rounded-2xl px-4 py-3">
-
-                                    <p className="text-gray-400 font-bold text-sm mb-2">
-                                        Ví dụ
-                                    </p>
-
-                                    <p className="text-gray-700 italic leading-relaxed">
-
-                                        {currentWord.example
-                                            .split(currentWord.word)
-                                            .map(
-                                                (
-                                                    part,
-                                                    index,
-                                                    arr
-                                                ) => (
-
-                                                    <span key={index}>
-
-                                                        {part}
-
-                                                        {index <
-                                                            arr.length - 1 && (
-
-                                                                <span className="font-bold text-blue-600 drop-shadow-[0_0_16px_rgba(59,130,246,0.8)]">
-
-                                                                    {currentWord.word}
-
-                                                                </span>
-
-                                                            )}
-
-                                                    </span>
-
-                                                )
                                             )}
 
+                                            {currentWord.ipa && (
+
+                                                <span className="text-gray-500 font-medium text-sm">
+
+                                                    {currentWord.ipa}
+
+                                                </span>
+
+                                            )}
+
+                                        </div>
+
+                                    </div>
+
+                                    <div className="flex items-center gap-3">
+
+                                        <button
+                                            onClick={playAudio}
+                                            className="w-10 h-10 rounded-xl bg-blue-50 hover:bg-blue-100 flex items-center justify-center transition"
+                                        >
+
+                                            <Volume2 className="w-5 h-5 text-blue-600" />
+
+                                        </button>
+
+                                        <button
+                                            onClick={() =>
+                                                setAutoPlayAudio(
+                                                    !autoPlayAudio
+                                                )
+                                            }
+                                            className={`
+                        relative w-11 h-6 rounded-full transition
+
+                        ${autoPlayAudio
+                                                    ? "bg-blue-600"
+                                                    : "bg-gray-200"
+                                                }
+                    `}
+                                        >
+
+                                            <div
+                                                className={`
+                            absolute top-0.5 w-5 h-5 rounded-full bg-white transition
+
+                            ${autoPlayAudio
+                                                        ? "left-5"
+                                                        : "left-0.5"
+                                                    }
+                        `}
+                                            />
+
+                                        </button>
+
+                                    </div>
+
+                                </div>
+
+                                {/* MEANING */}
+                                <div className="mt-5">
+
+                                    <p className="text-gray-400 font-bold text-sm">
+                                        Nghĩa
+                                    </p>
+
+                                    <p className="text-2xl font-black mt-1">
+
+                                        {currentWord.meaning}
+
                                     </p>
 
                                 </div>
 
-                            )}
+                                {/* EXAMPLE */}
+                                {currentWord.example && (
+
+                                    <div className="mt-5 bg-white rounded-2xl px-4 py-3">
+
+                                        <p className="text-gray-400 font-bold text-sm mb-2">
+                                            Ví dụ
+                                        </p>
+
+                                        <p className="text-gray-700 italic leading-relaxed">
+
+                                            {currentWord.example
+                                                .split(currentWord.word)
+                                                .map(
+                                                    (
+                                                        part,
+                                                        index,
+                                                        arr
+                                                    ) => (
+
+                                                        <span key={index}>
+
+                                                            {part}
+
+                                                            {index <
+                                                                arr.length - 1 && (
+
+                                                                    <span className="font-bold text-blue-600 drop-shadow-[0_0_16px_rgba(59,130,246,0.8)]">
+
+                                                                        {currentWord.word}
+
+                                                                    </span>
+
+                                                                )}
+
+                                                        </span>
+
+                                                    )
+                                                )}
+
+                                        </p>
+
+                                    </div>
+
+                                )}
+
+                            </div>
 
                         </div>
-
                     </>
-
                 )}
-
                 {/* DONT KNOW */}
                 {!showAnswer && (
 
