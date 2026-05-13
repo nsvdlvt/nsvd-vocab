@@ -1313,9 +1313,9 @@ duration-700
 
                                                 hasSeen: false,
 
-                                                status: "new",
+                                                status: "new" as const,
 
-                                                questionType: "mcq",
+                                                questionType: "mcq" as const,
                                             }))
 
                                     setQueue(resetQueue)
