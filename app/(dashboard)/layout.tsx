@@ -10,9 +10,11 @@ import {
   Settings,
   Menu,
   Globe,
+  ClipboardCheck,
   X,
   LogOut,
   DollarSign,
+  FolderPlus,
 } from "lucide-react"
 import { useEffect, useState } from "react"
 import { supabase } from "@/lib/supabase"
@@ -103,6 +105,16 @@ if (loading) {
       path: "/community",
     },
     {
+      title: "Tài liệu",
+      icon: FolderPlus,
+      path: "/documents",
+    },
+    {
+      title: "Test",
+      icon: ClipboardCheck,
+      path: "/test",
+    },
+    {
       title: "Pricing",
       icon: DollarSign,
       path: "/pricing",
@@ -112,6 +124,7 @@ if (loading) {
       icon: Settings,
       path: "/settings",
     },
+    
   ]
 
   const handleLogout = async () => {

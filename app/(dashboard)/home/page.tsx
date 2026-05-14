@@ -2,18 +2,110 @@
 
 import Link from "next/link"
 import { useRouter } from "next/navigation"
+import {
+  useEffect,
+  useState
+} from "react"
 
+import { supabase }
+from "@/lib/supabase"
 export default function HomePage() {
+  const [role, setRole] =
+  useState("MEMBER")
   const router = useRouter()
+useEffect(() => {
 
+  const createProfile =
+    async () => {
+
+      const {
+        data: { user }
+      } =
+        await supabase
+          .auth
+          .getUser()
+
+      if (!user)
+        return
+
+      const { data: existing } =
+        await supabase
+          .from("profiles")
+          .select("*")
+          .eq("id", user.id)
+          .maybeSingle()
+
+      // CREATE PROFILE
+      if (!existing) {
+
+        await supabase
+          .from("profiles")
+          .insert({
+
+            id: user.id,
+
+            email: user.email,
+
+            username:
+              user.user_metadata
+                ?.full_name || "",
+
+            avatar_url:
+              user.user_metadata
+                ?.avatar_url || "",
+
+            role: "MEMBER"
+          })
+
+        setRole("MEMBER")
+      }
+
+      else {
+
+        setRole(
+          existing.role
+        )
+      }
+    }
+
+  createProfile()
+
+}, [])
   return (
     <section className="p-5 md:p-8 pb-28 lg:pb-8">
       {/* TOP BAR */}
       <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-5 mb-10">
         <div>
-          <p className="text-gray-500 text-lg">
-            Welcome back 👋
-          </p>
+          <div className="flex items-center gap-3 flex-wrap">
+
+  <p className="text-gray-500 text-lg">
+    Welcome back 👋
+  </p>
+
+  <div
+    className={`
+px-3 py-1 rounded-full
+text-xs font-black text-white
+
+${role === "ADMIN"
+        ? "bg-red-500"
+
+        : role === "PRO"
+          ? "bg-gradient-to-r from-yellow-400 to-orange-400"
+
+          : role === "PLUS"
+            ? "bg-violet-500"
+
+            : "bg-gray-400"
+      }
+`}
+  >
+
+    {role}
+
+  </div>
+
+</div>
 
           <h1 className="text-4xl md:text-5xl font-black mt-2 leading-tight">
             Continue your
