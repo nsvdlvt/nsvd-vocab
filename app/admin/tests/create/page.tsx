@@ -173,7 +173,115 @@ const [quickInput, setQuickInput] =
             )
         )
     }
+const parseQuestions = (
+    raw: string
+) => {
 
+    const blocks =
+
+        raw
+            .split(
+                /Câu\s+\d+\s*:/i
+            )
+            .filter(Boolean)
+
+    const parsed =
+
+        blocks.map((block) => {
+
+            const lines =
+
+                block
+                    .split("\n")
+                    .map((line) =>
+                        line.trim()
+                    )
+                    .filter(Boolean)
+
+            const question =
+                lines[0]
+
+            const options: string[] = []
+
+            let correctAnswer = -1
+
+            let explanation = ""
+
+            lines.forEach(
+                (line) => {
+
+                    if (
+                        /^[*]?[A-D]\./i.test(
+                            line
+                        )
+                    ) {
+
+                        const isCorrect =
+
+                            line.startsWith(
+                                "*"
+                            )
+
+                        const cleaned =
+
+                            line
+                                .replace(
+                                    "*",
+                                    ""
+                                )
+                                .replace(
+                                    /^[A-D]\.\s*/i,
+                                    ""
+                                )
+
+                        options.push(
+                            cleaned
+                        )
+
+                        if (isCorrect) {
+
+                            correctAnswer =
+                                options.length - 1
+                        }
+                    }
+
+                    if (
+                        line.startsWith(
+                            "Giải thích:"
+                        )
+                    ) {
+
+                        explanation =
+
+                            line.replace(
+                                "Giải thích:",
+                                ""
+                            )
+                    }
+                }
+            )
+
+            return {
+
+                question,
+
+                options:
+                    [
+                        ...options,
+                        "",
+                        "",
+                        "",
+                        ""
+                    ].slice(0, 4),
+
+                correctAnswer,
+
+                explanation
+            }
+        })
+
+    setQuestions(parsed)
+}
     // CREATE TEST
     const handleCreate =
         async () => {
@@ -346,7 +454,101 @@ text-lg
                     </div>
 
                 </div>
+<div className="
+flex
+justify-end
 
+mb-6
+">
+
+    <div className="
+flex
+items-center
+
+gap-2
+
+bg-white
+
+p-2
+
+rounded-2xl
+
+border border-gray-100
+
+shadow-sm
+">
+
+        <button
+            type="button"
+            onClick={() =>
+                setQuickMode(false)
+            }
+            className={`
+px-5
+h-12
+
+rounded-xl
+
+font-black
+
+transition-all
+
+${!quickMode
+
+                    ? `
+bg-blue-600
+text-white
+`
+
+                    : `
+text-gray-500
+hover:bg-gray-100
+`
+                }
+`}
+        >
+
+            Thêm thủ công
+
+        </button>
+
+        <button
+            type="button"
+            onClick={() =>
+                setQuickMode(true)
+            }
+            className={`
+px-5
+h-12
+
+rounded-xl
+
+font-black
+
+transition-all
+
+${quickMode
+
+                    ? `
+bg-emerald-600
+text-white
+`
+
+                    : `
+text-gray-500
+hover:bg-gray-100
+`
+                }
+`}
+        >
+
+            ⚡ Thêm nhanh
+
+        </button>
+
+    </div>
+
+</div>
                 {/* INFO */}
                 <div className="
 bg-white
@@ -538,21 +740,274 @@ outline-none
                 </div>
 
                 {/* QUESTIONS */}
+                {
+    quickMode
+
+        ? (
+
+            <div className="
+grid
+grid-cols-1
+xl:grid-cols-2
+
+gap-6
+
+mt-8
+">
+
+                {/* PREVIEW */}
                 <div className="
+bg-white
+
+rounded-[40px]
+
+p-8
+
+border border-gray-100
+
+shadow-sm
+
+max-h-[80vh]
+overflow-y-auto
+">
+
+                    <h2 className="
+text-3xl
+font-black
+
+mb-6
+">
+
+                        Preview
+
+                    </h2>
+
+                    <div className="
+space-y-6
+">
+
+                        {
+                            questions.map(
+                                (
+                                    question,
+                                    index
+                                ) => (
+
+                                    <div
+                                        key={index}
+                                        className="
+border border-gray-100
+
+rounded-3xl
+
+p-5
+"
+                                    >
+
+                                        <h2 className="
+font-black
+text-xl
+leading-relaxed
+">
+
+                                            Câu {index + 1}: {question.question}
+
+                                        </h2>
+
+                                        <div className="
+space-y-3
+
+mt-5
+">
+
+                                            {
+                                                question.options.map(
+                                                    (
+                                                        option,
+                                                        optionIndex
+                                                    ) => {
+
+                                                        const label =
+
+                                                            String.fromCharCode(
+                                                                65 + optionIndex
+                                                            )
+
+                                                        const isCorrect =
+
+                                                            question.correctAnswer ===
+                                                            optionIndex
+
+                                                        return (
+
+                                                            <div
+                                                                key={optionIndex}
+                                                                className={`
+flex
+items-center
+
+gap-4
+
+rounded-2xl
+
+border
+
+p-4
+
+${isCorrect
+
+                                                                        ? `
+border-green-500
+bg-green-50
+`
+
+                                                                        : `
+border-gray-100
+`
+                                                                    }
+`}
+                                                            >
+
+                                                                <div className={`
+min-w-10
+h-10
+
+rounded-xl
+
+flex
+items-center
+justify-center
+
+font-black
+
+${isCorrect
+
+                                                                        ? `
+bg-green-500
+text-white
+`
+
+                                                                        : `
+bg-gray-100
+`
+                                                                    }
+`}>
+
+                                                                    {label}
+
+                                                                </div>
+
+                                                                <p>
+
+                                                                    {option}
+
+                                                                </p>
+
+                                                            </div>
+                                                        )
+                                                    }
+                                                )
+                                            }
+
+                                        </div>
+
+                                    </div>
+                                )
+                            )
+                        }
+
+                    </div>
+
+                </div>
+
+                {/* INPUT */}
+                <div className="
+bg-white
+
+rounded-[40px]
+
+p-8
+
+border border-gray-100
+
+shadow-sm
+">
+
+                    <h2 className="
+text-3xl
+font-black
+
+mb-6
+">
+
+                        ⚡ Thêm nhanh
+
+                    </h2>
+
+                    <textarea
+                        value={quickInput}
+                        onChange={(e) => {
+
+                            setQuickInput(
+                                e.target.value
+                            )
+
+                            parseQuestions(
+                                e.target.value
+                            )
+                        }}
+                        placeholder={`Câu 1: What is dissemination?
+
+A. destruction
+B. isolation
+*C. spreading information
+D. protection
+
+Giải thích:
+Dissemination means spreading information.`}
+                        className="
+w-full
+h-[70vh]
+
+rounded-3xl
+
+border border-gray-200
+
+p-6
+
+font-mono
+text-sm
+leading-relaxed
+
+outline-none
+
+focus:border-emerald-500
+"
+                    />
+
+                </div>
+
+            </div>
+
+        )
+
+        : (
+
+            <div className="
 space-y-6
 
 mt-8
 ">
 
-                    {questions.map(
-                        (
-                            question,
-                            index
-                        ) => (
+                {questions.map(
+                    (
+                        question,
+                        index
+                    ) => (
 
-                            <div
-                                key={index}
-                                className="
+                        <div
+                            key={index}
+                            className="
 bg-white
 
 rounded-[40px]
@@ -563,10 +1018,10 @@ border border-gray-100
 
 shadow-sm
 "
-                            >
+                        >
 
-                                {/* TOP */}
-                                <div className="
+                            {/* TOP */}
+                            <div className="
 flex
 items-center
 justify-between
@@ -574,263 +1029,49 @@ justify-between
 mb-6
 ">
 
-                                    <h2 className="
+                                <h2 className="
 text-3xl
 font-black
 ">
 
-                                        Câu
-                                        {" "}
-                                        {index + 1}
+                                    Câu {index + 1}
 
-                                    </h2>
-
-                                    {
-                                        questions.length >
-                                        1 && (
-
-                                            <button
-                                                onClick={() =>
-                                                    removeQuestion(
-                                                        index
-                                                    )
-                                                }
-                                                className="
-w-12
-h-12
-
-rounded-2xl
-
-bg-red-100
-hover:bg-red-200
-
-text-red-600
-
-flex
-items-center
-justify-center
-
-transition
-"
-                                            >
-
-                                                <Trash2 className="
-w-5
-h-5
-" />
-
-                                            </button>
-                                        )
-                                    }
-
-                                </div>
-
-                                {/* QUESTION */}
-                                <input
-                                    value={
-                                        question.question
-                                    }
-                                    onChange={(e) =>
-                                        updateQuestion(
-                                            index,
-                                            "question",
-                                            e.target
-                                                .value
-                                        )
-                                    }
-                                    placeholder="Nhập câu hỏi..."
-                                    className="
-w-full
-h-14
-
-rounded-2xl
-
-border border-gray-200
-
-px-5
-
-outline-none
-
-focus:border-emerald-500
-"
-                                />
-
-                                {/* OPTIONS */}
-<div className="
-space-y-4
-
-mt-6
-">
-
-    {
-        question.options.map(
-            (
-                option,
-                optionIndex
-            ) => {
-
-                const label =
-
-                    String.fromCharCode(
-                        65 + optionIndex
-                    )
-
-                const isSelected =
-
-    Number(question.correctAnswer) ===
-    Number(optionIndex)
-
-                return (
-
-                    <div
-                        key={optionIndex}
-                        className="
-flex
-items-center
-
-gap-4
-"
-                    >
-
-                        {/* SELECT */}
-                        <button
-                            type="button"
-                            onClick={() => {
-
-                                updateQuestion(
-                                    index,
-                                    "correctAnswer",
-Number(optionIndex)
-                                )
-                            }}
-                            className={`
-min-w-14
-h-14
-
-rounded-2xl
-
-border-2
-
-font-black
-text-lg
-
-transition-all
-
-${isSelected
-
-                                    ? `
-border-green-500
-bg-green-500
-text-white
-
-shadow-lg
-shadow-green-200
-
-scale-105
-`
-
-                                    : `
-border-gray-200
-bg-white
-
-hover:border-green-400
-hover:bg-green-50
-`
-                                }
-`}
-                        >
-
-                            {label}
-
-                        </button>
-
-                        {/* INPUT */}
-                        <input
-                            value={option}
-                            onChange={(e) =>
-                                updateOption(
-                                    index,
-                                    optionIndex,
-                                    e.target.value
-                                )
-                            }
-                            placeholder={`Đáp án ${label}`}
-                            className="
-flex-1
-h-14
-
-rounded-2xl
-
-border border-gray-200
-
-px-5
-
-outline-none
-
-focus:border-emerald-500
-"
-                        />
-
-                    </div>
-                )
-            }
-        )
-    }
-
-</div>
-
-                                {/* EXPLANATION */}
-                                <div className="
-mt-6
-">
-
-                                    <p className="
-font-black
-mb-3
-">
-
-                                        Giải thích
-
-                                    </p>
-
-                                    <textarea
-                                        value={
-                                            question.explanation
-                                        }
-                                        onChange={(e) =>
-                                            updateQuestion(
-                                                index,
-                                                "explanation",
-                                                e.target
-                                                    .value
-                                            )
-                                        }
-                                        rows={4}
-                                        placeholder="Giải thích đáp án..."
-                                        className="
-w-full
-
-rounded-2xl
-
-border border-gray-200
-
-p-5
-
-outline-none
-
-focus:border-emerald-500
-"
-                                    />
-
-                                </div>
+                                </h2>
 
                             </div>
-                        )
-                    )}
 
-                </div>
+                            {/* QUESTION */}
+                            <input
+                                value={
+                                    question.question
+                                }
+                                onChange={(e) =>
+                                    updateQuestion(
+                                        index,
+                                        "question",
+                                        e.target.value
+                                    )
+                                }
+                                placeholder="Nhập câu hỏi..."
+                                className="
+w-full
+h-14
 
-                {/* ACTIONS */}
+rounded-2xl
+
+border border-gray-200
+
+px-5
+"
+                            />
+
+                        </div>
+                    )
+                )}
+
+            </div>
+        )
+}
                 <div className="
 flex
 flex-wrap
