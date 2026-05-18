@@ -338,8 +338,7 @@ text-blue-100
 leading-relaxed
 ">
 
-                            Xem tài liệu trực tiếp
-                            ngay trên website.
+                            Published by NSVD Vocab (NSVD)
 
                         </p>
 

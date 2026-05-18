@@ -44,6 +44,34 @@ type LearningWord = {
     | "reverse"
 }
 
+const MAX_MEMORY_STRENGTH = 4
+
+const getMemoryStatus = (
+    strength: number
+): LearningWord["status"] => {
+
+    if (
+        strength >=
+        MAX_MEMORY_STRENGTH
+    ) {
+        return "mastered"
+    }
+
+    if (strength >= 1) {
+        return "learning"
+    }
+
+    return "new"
+}
+
+const clampMemoryStrength = (
+    strength: number
+) =>
+    Math.min(
+        Math.max(strength, 0),
+        MAX_MEMORY_STRENGTH
+    )
+
 export default function LearnPage({
     params,
 }: {
@@ -93,18 +121,19 @@ export default function LearnPage({
     ])
 
     const [
-        vocabFilter,
-        setVocabFilter
-    ] = useState<
-        "all" |
-        "starred" |
-        "unmastered"
-    >("all")
-
-    const [
         autoContinue,
         setAutoContinue
     ] = useState(false)
+    const [
+        tempLearningModes,
+        setTempLearningModes
+    ] = useState<
+        ("term" | "definition")[]
+    >(learningModes)
+    const [
+        tempAutoContinue,
+        setTempAutoContinue
+    ] = useState(autoContinue)
     const [editWord, setEditWord] =
         useState("")
 
@@ -134,33 +163,26 @@ export default function LearnPage({
     ] = useState(false)
     const masteredCount =
 
-        queue.filter(
+        allWords.filter(
             (w) =>
-                w.memoryStrength >= 4
+                w.memoryStrength >=
+                MAX_MEMORY_STRENGTH
+        ).length
+    const learningCount =
+
+        allWords.filter((w) =>
+            w.memoryStrength >= 1 &&
+            w.memoryStrength <
+            MAX_MEMORY_STRENGTH
+        ).length
+    const unlearnedCount =
+
+        allWords.filter(
+            (w) =>
+                w.memoryStrength === 0
         ).length
     const [totalWords, setTotalWords] =
         useState(0)
-    const progress =
-
-        totalWords === 0
-
-            ? 0
-
-            :
-
-            (
-                queue.reduce(
-                    (sum, word) =>
-
-                        sum +
-                        (word.memoryStrength / 4),
-
-                    0
-                )
-
-                / totalWords
-
-            ) * 100
     useEffect(() => {
 
         fetchWords()
@@ -175,9 +197,10 @@ export default function LearnPage({
 
         const hasUnlearnedWords =
 
-            queue.some(
+            allWords.some(
                 (w) =>
-                    w.memoryStrength < 4
+                    w.memoryStrength <
+                    MAX_MEMORY_STRENGTH
             )
 
         if (
@@ -258,15 +281,19 @@ export default function LearnPage({
             setQueue(
 
                 session.queue.map(
-                    (word: any) => ({
+                    (word: LearningWord) => ({
 
                         ...word,
 
                         memoryStrength:
-                            word.memoryStrength || 0,
+                            clampMemoryStrength(
+                                word.memoryStrength || 0
+                            ),
 
                         status:
-                            word.status || "new",
+                            getMemoryStatus(
+                                word.memoryStrength || 0
+                            ),
 
                         hasSeen:
                             word.hasSeen || false,
@@ -278,7 +305,32 @@ export default function LearnPage({
             )
 
             setAllWords(
-                session.all_words
+
+                session.all_words.map(
+                    (word: LearningWord) => ({
+
+                        ...word,
+
+                        memoryStrength:
+                            clampMemoryStrength(
+                                word.memoryStrength || 0
+                            ),
+
+                        status:
+                            getMemoryStatus(
+                                word.memoryStrength || 0
+                            ),
+
+                        hasSeen:
+                            word.hasSeen || false,
+
+                        questionType:
+                            word.questionType || "mcq",
+
+                        starred:
+                            word.starred || false,
+                    })
+                )
             )
 
             setCorrectCount(
@@ -318,9 +370,10 @@ export default function LearnPage({
                     ...word,
                     memoryStrength: 0,
                     questionType:
-    getRandomQuestionType(),
+                        getRandomQuestionType(),
                     hasSeen: false,
-                    status: "new",
+                    status:
+                        getMemoryStatus(0),
                 })
             )
         for (const word of data || []) {
@@ -343,38 +396,42 @@ export default function LearnPage({
     }
     const applyLearningSettings = () => {
 
-        let filtered = [...allWords]
+        const modeChanged =
 
-        // FILTER
-        if (vocabFilter === "starred") {
+            JSON.stringify(
+                learningModes
+            ) !==
 
-            filtered = filtered.filter(
-                (word) => word.starred
+            JSON.stringify(
+                tempLearningModes
             )
+        setLearningModes(
+            tempLearningModes
+        )
+        setAutoContinue(
+            tempAutoContinue
+        )
+
+        // KHÔNG reset nếu chỉ đổi auto continue
+        if (!modeChanged) {
+
+            setSettingsVisible(false)
+
+            return
         }
 
-        else if (
-            vocabFilter === "unmastered"
-        ) {
-
-            filtered = filtered.filter(
-                (word) =>
-                    word.memoryStrength < 4
-            )
-        }
-
-        if (filtered.length === 0) {
+        if (allWords.length === 0) {
 
             alert(
-                "Không có từ phù hợp với bộ lọc này."
+                "Không có từ phù hợp."
             )
 
             return
         }
-        // RESET + RANDOM
+
         const randomized =
 
-            filtered
+            [...allWords]
                 .sort(
                     () =>
                         Math.random() - 0.5
@@ -383,36 +440,28 @@ export default function LearnPage({
 
                     ...word,
 
-                    memoryStrength: 0,
-
-                    hasSeen: false,
-
-                    status: "new" as const,
-
                     questionType:
-                        getRandomQuestionType(),
+                        getRandomQuestionType(
+                            [...tempLearningModes]
+                        ),
                 }))
-
-        setQueue(randomized)
-
-        setTotalWords(
-            randomized.length
-        )
-
-        setCorrectCount(0)
-
-        setWrongCount(0)
-
-        setStreak(0)
-
-        setShowAnswer(false)
 
         setSelectedAnswer(null)
 
-        setSessionCompleted(false)
+        setShowAnswer(false)
+
+        setOptions([])
+
+        setQueue(randomized)
+
+setSelectedAnswer(null)
+
+setShowAnswer(false)
+
+        setSettingsVisible(false)
     }
     const currentWord =
-        queue[0]
+        queue?.[0]
     const correctAnswer =
 
         currentWord?.questionType === "reverse"
@@ -422,22 +471,24 @@ export default function LearnPage({
             : currentWord?.meaning || ""
     const trulyMastered =
 
-        queue.filter(
+        allWords.filter(
             (w) =>
-                w.memoryStrength >= 4
+                w.memoryStrength >=
+                MAX_MEMORY_STRENGTH
         ).length
     const learningWords =
 
-        queue.filter(
+        allWords.filter(
             (w) =>
 
                 w.memoryStrength >= 1 &&
-                w.memoryStrength < 4
+                w.memoryStrength <
+                MAX_MEMORY_STRENGTH
         ).length
 
     const weakWords =
 
-        queue.filter(
+        allWords.filter(
             (w) =>
                 w.memoryStrength === 0
         ).length
@@ -445,7 +496,7 @@ export default function LearnPage({
 
         if (
             !loading &&
-            progress >= 100
+            masteredCount >= totalWords
         ) {
 
             return
@@ -472,7 +523,7 @@ export default function LearnPage({
                     structuredClone(queue)
                 )
 
-            }, 300)
+            }, 1200)
 
         return () =>
             clearTimeout(timeout)
@@ -555,11 +606,12 @@ export default function LearnPage({
             )
         setOptions(shuffled)
     }, [
-        currentWord?.id,
-        allWords,
-        showAnswer,
-        loading
-    ])
+    currentWord?.id,
+    currentWord?.questionType,
+    allWords,
+    showAnswer,
+    loading
+])
 
     const saveProgress = async (
         updatedQueue:
@@ -762,9 +814,10 @@ export default function LearnPage({
     const nextQuestion = () => {
         const allMastered =
 
-            queue.every(
+            allWords.every(
                 (w) =>
-                    w.memoryStrength >= 4
+                    w.memoryStrength >=
+                    MAX_MEMORY_STRENGTH
             )
 
         if (allMastered) {
@@ -798,7 +851,8 @@ export default function LearnPage({
                         rest.length
                     )
 
-                    : current.memoryStrength <= 3
+                    : current.memoryStrength <
+                    MAX_MEMORY_STRENGTH
 
                         ? Math.min(
                             10 + Math.floor(Math.random() * 6),
@@ -813,7 +867,13 @@ export default function LearnPage({
             const newQueue = [
                 ...rest
             ]
+            if (
+                current.memoryStrength >=
+                MAX_MEMORY_STRENGTH
+            ) {
 
+                return rest
+            }
             newQueue.splice(
                 insertIndex,
                 0,
@@ -823,33 +883,39 @@ export default function LearnPage({
             return newQueue
         })
     }
-    const getRandomQuestionType =
-        (): LearningWord["questionType"] => {
+    const getRandomQuestionType = (
+        modes = learningModes
+    ): LearningWord["questionType"] => {
 
-            const types:
-                LearningWord["questionType"][] = []
+        const types:
+            LearningWord["questionType"][] = []
 
-            if (
-                learningModes.includes("term")
-            ) {
+        if (
+            modes.includes("term")
+        ) {
 
-                types.push("mcq")
-            }
-
-            if (
-                learningModes.includes("definition")
-            ) {
-
-                types.push("reverse")
-            }
-
-            return types[
-                Math.floor(
-                    Math.random() *
-                    types.length
-                )
-            ]
+            types.push("mcq")
         }
+
+        if (
+            modes.includes("definition")
+        ) {
+
+            types.push("reverse")
+        }
+
+        if (types.length === 0) {
+
+            return "mcq"
+        }
+
+        return types[
+            Math.floor(
+                Math.random() *
+                types.length
+            )
+        ]
+    }
     const handleAnswer = (
         answer: string
     ) => {
@@ -873,41 +939,44 @@ export default function LearnPage({
             answer === correctAnswer
         setQueue((prev) => {
 
-            return prev.map((word) => {
+            const updatedWords =
 
-                if (
-                    word.id !==
-                    currentWord.id
-                ) {
-                    return word
-                }
-                const nextStrength =
-                    isCorrect
-                        ? Math.min(
-                            word.memoryStrength + 1,
-                            4
-                        )
-                        : Math.max(
-                            word.memoryStrength - 2,
-                            0
-                        )
+                prev.map((word) => {
 
-                if (
+                    if (
+                        word.id !==
+                        currentWord.id
+                    ) {
+                        return word
+                    }
 
-                    word.memoryStrength >= 4 ||
-
-                    nextStrength >= 4
-
-                ) {
-
-                    updateSpacedRepetition(
-                        currentWord.id,
+                    const nextStrength =
                         isCorrect
-                    )
-                }
-                if (isCorrect) {
+                            ? clampMemoryStrength(
+                                word.memoryStrength + 1,
+                            )
+                            : clampMemoryStrength(
+                                word.memoryStrength - 2,
+                            )
+
+                    if (
+
+                        word.memoryStrength >=
+                        MAX_MEMORY_STRENGTH ||
+
+                        nextStrength >=
+                        MAX_MEMORY_STRENGTH
+
+                    ) {
+
+                        updateSpacedRepetition(
+                            currentWord.id,
+                            isCorrect
+                        )
+                    }
 
                     return {
+
                         ...word,
 
                         hasSeen: true,
@@ -916,29 +985,34 @@ export default function LearnPage({
                             nextStrength,
 
                         status:
-                            nextStrength >= 4
-                                ? "mastered"
-                                : nextStrength >= 2
-                                    ? "learning"
-                                    : "new",
+                            (
+                                getMemoryStatus(
+                                    nextStrength
+                                )
+                            ) as LearningWord["status"],
 
                         questionType:
-                            getRandomQuestionType(),
+                            word.questionType,
                     }
-                }
+                })
 
-                return {
-                    ...word,
-                    hasSeen: true,
-                    memoryStrength:
-                        nextStrength,
-                    questionType:
-    getRandomQuestionType(),
-                    status: "learning",
-                }
-            })
+            setAllWords((prev) =>
+
+                prev.map((word) => {
+
+                    const updated =
+
+                        updatedWords.find(
+                            (w) =>
+                                w.id === word.id
+                        )
+
+                    return updated || word
+                })
+            )
+
+            return updatedWords
         })
-
 
         if (isCorrect) {
             navigator.vibrate?.(30)
@@ -967,13 +1041,14 @@ export default function LearnPage({
 
     const handleDontKnow =
         () => {
-
+            setStreak(0)
             if (showAnswer)
                 return
 
             setShowAnswer(true)
             if (
-                (currentWord?.memoryStrength || 0) >= 4
+                (currentWord?.memoryStrength || 0) >=
+                MAX_MEMORY_STRENGTH
             ) {
 
                 updateSpacedRepetition(
@@ -987,27 +1062,57 @@ export default function LearnPage({
 
             setQueue((prev) => {
 
-                return prev.map((word) => {
+                const updatedWords =
 
-                    if (
-                        word.id !==
-                        currentWord.id
-                    ) {
-                        return word
-                    }
+                    prev.map((word) => {
 
-                    return {
-                        ...word,
-                        hasSeen: true,
-                        memoryStrength:
-                            Math.max(
-                                word.memoryStrength - 2,
-                                0
-                            ),
-                        questionType: getRandomQuestionType(),
-                        status: "learning",
-                    }
-                })
+                        if (
+                            word.id !==
+                            currentWord.id
+                        ) {
+                            return word
+                        }
+
+                        const nextStrength =
+                            clampMemoryStrength(
+                                word.memoryStrength - 2
+                            )
+
+                        return {
+
+                            ...word,
+
+                            hasSeen: true,
+
+                            memoryStrength:
+                                nextStrength,
+
+                            questionType:
+                                word.questionType,
+
+                            status:
+                                getMemoryStatus(
+                                    nextStrength
+                                ),
+                        }
+                    })
+
+                setAllWords((prev) =>
+
+                    prev.map((word) => {
+
+                        const updated =
+
+                            updatedWords.find(
+                                (w) =>
+                                    w.id === word.id
+                            )
+
+                        return updated || word
+                    })
+                )
+
+                return updatedWords
             })
         }
     const renderWordSection = (
@@ -1401,33 +1506,45 @@ duration-300
 
                             <p className="font-black">
 
-                                {Math.round(
-                                    (trulyMastered / totalWords) * 100
-                                )}%
+                                {trulyMastered}/{totalWords}
 
                             </p>
 
                         </div>
 
-                        <div className="w-full h-4 rounded-full bg-gray-100 overflow-hidden">
+                        <div className="w-full h-4 rounded-full bg-slate-200/70 overflow-hidden flex">
 
                             <div
                                 className="
 h-full
-rounded-full
-
-bg-gradient-to-r
-from-blue-500
-via-blue-400
-to-cyan-400
-
-shadow-[0_0_24px_rgba(59,130,246,0.35)]
+bg-blue-700
 
 transition-all
 duration-700
 "
                                 style={{
-                                    width: `${(trulyMastered / totalWords) * 100}%`
+                                    width:
+                                        `${totalWords
+                                            ? (trulyMastered / totalWords) * 100
+                                            : 0
+                                        }%`
+                                }}
+                            />
+
+                            <div
+                                className="
+h-full
+bg-blue-300
+
+transition-all
+duration-700
+"
+                                style={{
+                                    width:
+                                        `${totalWords
+                                            ? (learningWords / totalWords) * 100
+                                            : 0
+                                        }%`
                                 }}
                             />
 
@@ -1449,7 +1566,7 @@ duration-700
 
                                     const resetQueue =
 
-                                        [...queue]
+                                        [...allWords]
 
                                             .sort(
                                                 () =>
@@ -1464,13 +1581,17 @@ duration-700
 
                                                 hasSeen: false,
 
-                                                status: "new" as const,
+                                                status:
+                                                    getMemoryStatus(0),
 
-                                                questionType: "mcq" as const,
+                                                questionType:
+                                                    getRandomQuestionType(
+                                                        tempLearningModes
+                                                    ),
                                             }))
 
                                     setQueue(resetQueue)
-
+                                    setAllWords(resetQueue)
                                 }
 
                                 setSessionCompleted(false)
@@ -1484,6 +1605,15 @@ duration-700
                                 setShowAnswer(false)
 
                                 setSelectedAnswer(null)
+                                setCorrectCount(0)
+
+                                setWrongCount(0)
+
+                                setStreak(0)
+
+                                setSelectedAnswer(null)
+
+                                setShowAnswer(false)
                             }}
                             className="
 h-16
@@ -1547,7 +1677,8 @@ duration-300
                         queue.filter(
                             (w) =>
                                 w.memoryStrength >= 1 &&
-                                w.memoryStrength < 4
+                                w.memoryStrength <
+                                MAX_MEMORY_STRENGTH
                         ),
 
                         "bg-blue-100 text-blue-600"
@@ -1559,7 +1690,8 @@ duration-300
 
                         queue.filter(
                             (w) =>
-                                w.memoryStrength >= 4
+                                w.memoryStrength >=
+                                MAX_MEMORY_STRENGTH
                         ),
 
                         "bg-green-100 text-green-600"
@@ -1639,23 +1771,53 @@ duration-300
                             Tiến trình
                         </p>
 
-                        <p className="font-black text-blue-600">
+                        <p className="font-black text-blue-700">
 
-                            {Math.round(progress)}%
+                            {masteredCount}/{totalWords}
 
                         </p>
 
                     </div>
 
-                    <div className="w-full h-4 bg-blue-100/60 backdrop-blur rounded-full overflow-hidden border border-blue-100">
+                    <div className="w-full h-4 bg-slate-200/70 backdrop-blur rounded-full overflow-hidden border border-blue-100 flex">
 
                         <div
-                            className="h-full bg-gradient-to-r from-blue-500 via-blue-400 to-cyan-400 shadow-[0_0_20px_rgba(59,130,246,0.35)] animate-pulse rounded-full transition-all duration-700 ease-out"
+                            className="h-full bg-blue-700 transition-all duration-700 ease-out"
                             style={{
-                                width: `${progress}%`
+                                width:
+                                    `${totalWords
+                                        ? (masteredCount / totalWords) * 100
+                                        : 0
+                                    }%`
                             }}
                         />
 
+                        <div
+                            className="h-full bg-blue-300 transition-all duration-700 ease-out"
+                            style={{
+                                width:
+                                    `${totalWords
+                                        ? (learningCount / totalWords) * 100
+                                        : 0
+                                    }%`
+                            }}
+                        />
+
+                    </div>
+
+                    <div className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-2 text-xs font-bold text-gray-500">
+                        <span className="inline-flex items-center gap-1.5">
+                            <span className="w-2.5 h-2.5 rounded-full bg-blue-700" />
+                            Đã thuộc: {masteredCount}
+                        </span>
+                        <span className="inline-flex items-center gap-1.5">
+                            <span className="w-2.5 h-2.5 rounded-full bg-blue-300" />
+                            Đang học: {learningCount}
+                        </span>
+                        <span className="inline-flex items-center gap-1.5">
+                            <span className="w-2.5 h-2.5 rounded-full bg-slate-300" />
+                            Chưa học: {unlearnedCount}
+                        </span>
                     </div>
 
                 </div>
@@ -1674,9 +1836,28 @@ duration-300
 
                         {/* STAR */}
                         <button
-                            onClick={() => {
+                            onClick={async () => {
+
+                                const newStarred =
+                                    !currentWord.starred
+
+                                const updatedWords =
+
+                                    queue.map((word) =>
+
+                                        word.id === currentWord.id
+
+                                            ? {
+                                                ...word,
+                                                starred:
+                                                    newStarred
+                                            }
+
+                                            : word
+                                    )
 
                                 setQueue((prev) =>
+
                                     prev.map((word) =>
 
                                         word.id === currentWord.id
@@ -1684,12 +1865,40 @@ duration-300
                                             ? {
                                                 ...word,
                                                 starred:
-                                                    !word.starred
+                                                    newStarred
                                             }
 
                                             : word
                                     )
                                 )
+
+                                setAllWords((prev) =>
+
+                                    prev.map((word) =>
+
+                                        word.id === currentWord.id
+
+                                            ? {
+                                                ...word,
+                                                starred:
+                                                    newStarred
+                                            }
+
+                                            : word
+                                    )
+                                )
+
+                                // SAVE DATABASE
+                                await supabase
+                                    .from("vocab_words")
+                                    .update({
+                                        starred:
+                                            newStarred
+                                    })
+                                    .eq(
+                                        "id",
+                                        currentWord.id
+                                    )
                             }}
                             className="w-10 h-10 rounded-xl hover:bg-yellow-50 flex items-center justify-center transition"
                         >
@@ -1708,9 +1917,18 @@ duration-300
                         </button>
                         {/* SETTINGS */}
                         <button
-                            onClick={() =>
+                            onClick={() => {
+
+                                setTempLearningModes(
+                                    learningModes
+                                )
+
+                                setTempAutoContinue(
+                                    autoContinue
+                                )
+
                                 setSettingsVisible(true)
-                            }
+                            }}
                             className="
 w-10
 h-10
@@ -1743,7 +1961,7 @@ text-gray-500
                                 )
 
                                 setEditMeaning(
-                                    correctAnswer
+                                    currentWord.meaning
                                 )
 
                                 setEditExample(
@@ -1783,11 +2001,18 @@ text-gray-500
 
                 </div>
 
-                <h2 className="text-2xl md:text-4xl font-black text-center break-words leading-tight">
+                <h2 className="
+text-2xl
+md:text-4xl
+font-black
+text-center
+break-words
+leading-tight
+">
 
                     {currentWord.questionType === "reverse"
 
-                        ? correctAnswer
+                        ? currentWord.meaning
 
                         : currentWord.word
                     }
@@ -1931,7 +2156,7 @@ ${!showAnswer
                                             Đáp án đúng:
                                             <span className="ml-2 text-black">
 
-                                                {correctAnswer}
+                                                {currentWord.meaning}
 
                                             </span>
 
@@ -2040,7 +2265,7 @@ ${!showAnswer
 
                                     <p className="text-2xl font-black mt-1">
 
-                                        {correctAnswer}
+                                        {currentWord.meaning}
 
                                     </p>
 
@@ -2233,11 +2458,22 @@ space-y-3
                                         key={mode.key}
                                         onClick={() => {
 
-                                            setLearningModes((prev) =>
+                                            setTempLearningModes((prev) => {
 
-                                                prev.includes(
+                                                const exists = prev.includes(
                                                     mode.key as any
                                                 )
+
+                                                // KHÔNG cho bỏ hết
+                                                if (
+                                                    exists &&
+                                                    prev.length === 1
+                                                ) {
+
+                                                    return prev
+                                                }
+
+                                                return exists
 
                                                     ? prev.filter(
                                                         (m) =>
@@ -2248,7 +2484,7 @@ space-y-3
                                                         ...prev,
                                                         mode.key as any
                                                     ]
-                                            )
+                                            })
                                         }}
                                         className={`
 w-full
@@ -2263,7 +2499,7 @@ font-bold
 
 transition
 
-${learningModes.includes(
+${tempLearningModes.includes(
                                             mode.key as any
                                         )
 
@@ -2291,88 +2527,6 @@ hover:border-gray-200
 
                         </div>
 
-                        {/* FILTER */}
-                        <div className="mt-8">
-
-                            <p className="
-font-black
-text-lg
-mb-4
-">
-
-                                Lọc từ vựng
-
-                            </p>
-
-                            <div className="
-grid
-grid-cols-3
-gap-3
-">
-
-                                {[
-                                    {
-                                        key: "all",
-                                        label:
-                                            "Tất cả các từ"
-                                    },
-
-                                    {
-                                        key: "starred",
-                                        label:
-                                            "Chỉ từ đánh dấu sao"
-                                    },
-
-                                    {
-                                        key: "unmastered",
-                                        label:
-                                            "Chỉ từ chưa thuộc"
-                                    }
-                                ].map((filter) => (
-
-                                    <button
-                                        key={filter.key}
-                                        onClick={() =>
-                                            setVocabFilter(
-                                                filter.key as any
-                                            )
-                                        }
-                                        className={`
-rounded-2xl
-p-4
-
-border-2
-
-font-bold
-text-sm
-
-transition
-
-${vocabFilter === filter.key
-
-                                                ? `
-border-blue-500
-bg-blue-50
-text-blue-700
-`
-
-                                                : `
-border-gray-100
-hover:border-gray-200
-`
-                                            }
-`}
-                                    >
-
-                                        {filter.label}
-
-                                    </button>
-
-                                ))}
-
-                            </div>
-
-                        </div>
 
                         {/* OPTIONS */}
                         <div className="mt-8">
@@ -2389,8 +2543,8 @@ mb-4
 
                             <button
                                 onClick={() =>
-                                    setAutoContinue(
-                                        !autoContinue
+                                    setTempAutoContinue(
+                                        !tempAutoContinue
                                     )
                                 }
                                 className={`
@@ -2406,7 +2560,7 @@ text-left
 
 transition
 
-${autoContinue
+${tempAutoContinue
 
                                         ? `
 border-blue-500
@@ -2441,7 +2595,7 @@ mt-10
                                 onClick={() => {
 
                                     const resetQueue =
-                                        allWords
+                                        [...allWords]
                                             .sort(
                                                 () =>
                                                     Math.random() - 0.5
@@ -2454,11 +2608,17 @@ mt-10
 
                                                     hasSeen: false,
 
-                                                    status: "new" as const,
+                                                    status:
+                                                        getMemoryStatus(0),
+                                                    questionType:
+                                                        getRandomQuestionType(
+                                                            learningModes
+                                                        ),
                                                 })
                                             )
 
                                     setQueue(resetQueue)
+                                    setAllWords(resetQueue)
                                 }}
                                 className="
 h-14
@@ -2482,8 +2642,6 @@ transition
                             <button
                                 onClick={() => {
                                     applyLearningSettings()
-
-                                    setSettingsVisible(false)
                                 }}
                                 className="
 h-14

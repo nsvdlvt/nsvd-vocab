@@ -13,9 +13,19 @@ type WordType = {
   synonyms: string
 }
 
+type DictionaryPhonetic = {
+  audio?: string
+}
+
+type DictionaryEntry = {
+  phonetics?: DictionaryPhonetic[]
+}
+
 export default function NewPage() {
   const router = useRouter()
   const [title, setTitle] = useState("")
+  const [description, setDescription] =
+    useState("")
   const [tag, setTag] =
     useState("IELTS")
 const [showTags, setShowTags] =
@@ -192,13 +202,14 @@ const [showTags, setShowTags] =
                   )
 
                 const data =
-                  await res.json()
+                  await res.json() as
+                    DictionaryEntry[]
 
                 let audio =
                   data?.[0]
                     ?.phonetics
                     ?.find(
-                      (p: any) =>
+                      (p) =>
                         p.audio
                     )?.audio || ""
 
@@ -245,6 +256,7 @@ const [showTags, setShowTags] =
         .from("vocab_sets")
         .insert({
           title,
+          description,
           tag,
           icon,
           is_public: isPublic,
@@ -315,6 +327,7 @@ const [showTags, setShowTags] =
 
       // reset
       setTitle("")
+      setDescription("")
 
       setWords([
         {
@@ -753,6 +766,19 @@ từ vựng	phiên âm	loại từ	nghĩa tiếng Việt	ví dụ tiếng Anh	sy
           }
           placeholder="Ví dụ: IELTS Vocabulary"
           className="w-full bg-[#f5f9ff] rounded-2xl p-5 outline-none border border-transparent focus:border-blue-500"
+        />
+
+        <p className="font-bold mb-4 mt-6 text-lg">
+          Mô tả (tùy chọn)
+        </p>
+
+        <textarea
+          value={description}
+          onChange={(e) =>
+            setDescription(e.target.value)
+          }
+          placeholder="Thêm mô tả cho bộ từ của bạn..."
+          className="w-full min-h-[120px] bg-[#f5f9ff] rounded-2xl p-5 outline-none border border-transparent focus:border-blue-500 resize-none"
         />
       </div>
       {/* EXTRA */}

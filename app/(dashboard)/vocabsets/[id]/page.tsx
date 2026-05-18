@@ -22,6 +22,8 @@ type WordType = {
   example: string
   synonyms: string
   audio_url: string
+  starred?: boolean
+memoryStrength?: number
 }
 
 import { use } from "react"
@@ -40,17 +42,244 @@ export default function SetPage({
 
   const [title, setTitle] =
     useState("")
+  const [description, setDescription] =
+    useState("")
   const [author, setAuthor] =
     useState("")
   const [authorAvatar, setAuthorAvatar] =
     useState("")
   const [loading, setLoading] =
     useState(true)
-
+  const [
+    previewModal,
+    setPreviewModal
+  ] = useState<{
+    title: string
+    words: WordType[]
+  } | null>(null)
   useEffect(() => {
     fetchSet()
   }, [id])
+  useEffect(() => {
 
+  const handleEsc = (
+    e: KeyboardEvent
+  ) => {
+
+    if (
+      e.key === "Escape"
+    ) {
+
+      setPreviewModal(null)
+    }
+  }
+
+  window.addEventListener(
+    "keydown",
+    handleEsc
+  )
+
+  return () => {
+
+    window.removeEventListener(
+      "keydown",
+      handleEsc
+    )
+  }
+
+}, [])
+  const renderCompactSection = (
+    title: string,
+    words: WordType[],
+    icon: string,
+    color: string
+  ) => {
+
+    if (words.length === 0)
+      return null
+
+    return (
+
+      <div className="
+bg-white
+rounded-[32px]
+border border-gray-100
+shadow-sm
+p-6
+">
+
+        {/* HEADER */}
+        <div className="
+flex
+items-center
+justify-between
+mb-5
+">
+
+          <div className="
+flex
+items-center
+gap-3
+">
+
+            <div className={`
+w-12
+h-12
+rounded-2xl
+
+flex
+items-center
+justify-center
+
+text-2xl
+
+${color}
+`}>
+
+              {icon}
+
+            </div>
+
+            <div>
+
+              <h3 className="
+text-2xl
+font-black
+">
+
+                {title}
+
+              </h3>
+
+              <p className="
+text-gray-400
+font-medium
+text-sm
+">
+
+                {words.length} từ
+
+              </p>
+
+            </div>
+
+          </div>
+
+          {words.length > 3 && (
+
+            <button
+              onClick={() =>
+                setPreviewModal({
+                  title,
+                  words
+                })
+              }
+              className="
+px-4
+py-2
+
+rounded-xl
+
+bg-blue-50
+hover:bg-blue-100
+
+text-blue-600
+font-bold
+
+transition
+"
+            >
+
+              Xem thêm →
+
+            </button>
+
+          )}
+
+        </div>
+
+        {/* WORDS */}
+        <div className="
+space-y-3
+">
+
+          {words
+            .slice(0, 3)
+            .map((word) => (
+
+              <div
+                key={word.id}
+                className="
+bg-[#f5f9ff]
+rounded-2xl
+p-4
+
+border border-blue-50
+"
+              >
+
+                <div className="
+flex
+items-center
+justify-between
+gap-3
+">
+
+                  <div>
+
+                    <h4 className="
+font-black
+text-lg
+">
+
+                      {word.word}
+
+                    </h4>
+
+                    <p className="
+text-gray-500
+mt-1
+">
+
+                      {word.meaning}
+                    </p>
+
+                  </div>
+
+                  {word.word_type && (
+
+                    <span className="
+px-3
+py-1
+
+rounded-full
+
+bg-white
+border border-gray-100
+
+text-xs
+font-bold
+uppercase
+text-gray-500
+">
+
+                      {word.word_type}
+
+                    </span>
+
+                  )}
+
+                </div>
+
+              </div>
+
+            ))}
+
+        </div>
+
+      </div>
+    )
+  }
   const fetchSet = async () => {
     const { data: setData } =
       await supabase
@@ -61,6 +290,9 @@ export default function SetPage({
 
     if (setData) {
       setTitle(setData.title)
+      setDescription(
+        setData.description || ""
+      )
       setAuthor(
         setData.author_name || ""
       )
@@ -130,6 +362,14 @@ export default function SetPage({
           <h1 className="text-4xl md:text-5xl font-black mt-2 leading-none break-words">
             {title}
           </h1>
+
+          {description && (
+
+            <p className="text-gray-500 text-lg mt-4 max-w-3xl leading-relaxed">
+              {description}
+            </p>
+
+          )}
         </div>
 
         {/* AUTHOR */}
@@ -295,83 +535,233 @@ export default function SetPage({
 
         </div>
       </div>
-      {/* WORDS */}
-      <div className="space-y-5 w-full">
+      {/* WORD LIST */}
+<div className="
+grid
+gap-5
+">
 
-        {words.map((word, index) => (
-          <div
-            key={word.id}
-            className="w-full overflow-hidden bg-white rounded-[28px] md:rounded-[40px] border border-gray-100 shadow-sm p-4 md:p-8"
-          >
+  {renderCompactSection(
+    "Từ đánh dấu sao",
+    words.filter(
+      (w: any) => w.starred
+    ),
+    "⭐",
+    "bg-yellow-100"
+  )}
 
-            {/* TOP */}
-            <div className="flex items-center gap-4 mb-8">
+  {renderCompactSection(
+    "Từ đã thuộc",
+    words.filter(
+      (w: any) =>
+        w.memoryStrength >= 4
+    ),
+    "🧠",
+    "bg-green-100"
+  )}
 
-              <div className="w-12 h-12 rounded-2xl bg-blue-600 text-white flex items-center justify-center font-black text-xl">
-                {index + 1}
-              </div>
+  {renderCompactSection(
+    "Từ chưa thuộc",
+    words.filter(
+      (w: any) =>
+        !w.memoryStrength ||
+        w.memoryStrength < 4
+    ),
+    "📘",
+    "bg-blue-100"
+  )}
 
-              <h2 className="text-2xl md:text-3xl font-black">
-                {word.word}
-              </h2>
-            </div>
+</div>
 
-            {/* GRID */}
-            <div className="grid md:grid-cols-2 gap-5">
+{/* PREVIEW MODAL */}
+{previewModal && (
 
-              <div className="bg-[#f5f9ff] rounded-2xl p-5">
-                <p className="text-gray-500 mb-2">
-                  Nghĩa
-                </p>
+  <div className="
+fixed
+inset-0
+z-50
 
-                <p className="font-bold text-lg">
-                  {word.meaning}
-                </p>
-              </div>
+bg-black/40
+backdrop-blur-sm
 
-              <div className="bg-[#f5f9ff] rounded-2xl p-5">
-                <p className="text-gray-500 mb-2">
-                  IPA
-                </p>
+flex
+items-center
+justify-center
 
-                <p className="font-bold text-lg">
-                  {word.ipa || "—"}
-                </p>
-              </div>
+p-5
+">
 
-              <div className="bg-[#f5f9ff] rounded-2xl p-5">
-                <p className="text-gray-500 mb-2">
-                  Từ loại
-                </p>
+    <div className="
+w-full
+max-w-3xl
 
-                <p className="font-bold text-lg">
-                  {word.word_type || "—"}
-                </p>
-              </div>
+bg-white
 
-              <div className="bg-[#f5f9ff] rounded-2xl p-5">
-                <p className="text-gray-500 mb-2">
-                  Synonyms
-                </p>
+rounded-[36px]
 
-                <p className="font-bold text-lg">
-                  {word.synonyms || "—"}
-                </p>
-              </div>
+p-7
 
-              <div className="bg-[#f5f9ff] rounded-2xl p-5 md:col-span-2">
-                <p className="text-gray-500 mb-2">
-                  Ví dụ
-                </p>
+shadow-[0_20px_80px_rgba(0,0,0,0.15)]
 
-                <p className="font-bold text-lg">
-                  {word.example || "—"}
-                </p>
-              </div>
-            </div>
-          </div>
-        ))}
+max-h-[85vh]
+overflow-y-auto
+">
+
+      {/* HEADER */}
+      <div className="
+flex
+items-center
+justify-between
+mb-6
+">
+
+        <div>
+
+          <h2 className="
+text-3xl
+font-black
+">
+
+            {previewModal.title}
+
+          </h2>
+
+          <p className="
+text-gray-400
+font-medium
+mt-1
+">
+
+            {previewModal.words.length} từ
+          </p>
+
+        </div>
+
+        <button
+          onClick={() =>
+            setPreviewModal(null)
+          }
+          className="
+w-11
+h-11
+
+rounded-2xl
+
+hover:bg-gray-100
+
+flex
+items-center
+justify-center
+
+transition
+"
+        >
+
+          ✕
+
+        </button>
+
       </div>
+
+      {/* LIST */}
+      <div className="
+space-y-3
+">
+
+        {previewModal.words.map(
+          (word) => (
+
+            <div
+              key={word.id}
+              className="
+bg-[#f5f9ff]
+
+rounded-2xl
+p-5
+
+border border-blue-50
+"
+            >
+
+              <div className="
+flex
+items-start
+justify-between
+gap-4
+">
+
+                <div>
+
+                  <h3 className="
+text-xl
+font-black
+">
+
+                    {word.word}
+
+                  </h3>
+
+                  <p className="
+text-gray-600
+mt-1
+">
+
+                    {word.meaning}
+                  </p>
+
+                  {word.example && (
+
+                    <p className="
+text-gray-400
+italic
+mt-3
+text-sm
+">
+
+                      {word.example}
+                    </p>
+
+                  )}
+
+                </div>
+
+                {word.word_type && (
+
+                  <span className="
+px-3
+py-1
+
+rounded-full
+
+bg-white
+
+text-xs
+font-bold
+uppercase
+
+border border-gray-100
+">
+
+                    {word.word_type}
+
+                  </span>
+
+                )}
+
+              </div>
+
+            </div>
+
+          )
+        )}
+
+      </div>
+
+    </div>
+
+  </div>
+
+)}
     </section >
   )
 }

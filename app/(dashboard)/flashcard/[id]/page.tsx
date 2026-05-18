@@ -480,7 +480,9 @@ export default function FlashcardPage({
             </div>
 
             {/* CARD */}
-            <div className="max-w-3xl mx-auto">
+            <div className="max-w-3xl mx-auto relative">
+
+                {settingsButton}
 
                 <div
                     onClick={() =>
@@ -511,7 +513,6 @@ items-center
 text-center
 p-10
 ">
-                            {settingsButton}
 
                             <p className="text-gray-400 font-bold mb-5">
                                 {frontMode === "word"
@@ -577,7 +578,7 @@ p-10
                                     ? "MEANING"
                                     : "WORD"}
                             </p>
-                            {settingsButton}
+                            
 
                             <h2 className="text-3xl md:text-5xl break-words font-black">
                                 {frontMode === "word"
