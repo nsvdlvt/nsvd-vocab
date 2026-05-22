@@ -94,186 +94,71 @@ export default function SetPage({
     icon: string,
     color: string
   ) => {
-
-    if (words.length === 0)
-      return null
+    if (words.length === 0) return null
 
     return (
-
-      <div className="
-bg-white
-rounded-[32px]
-border border-gray-100
-shadow-sm
-p-6
-">
+      <div className="bg-white rounded-[32px] border border-gray-100 shadow-sm p-6">
 
         {/* HEADER */}
-        <div className="
-flex
-items-center
-justify-between
-mb-5
-">
+        <div className="flex items-center justify-between mb-5">
 
-          <div className="
-flex
-items-center
-gap-3
-">
+          <div className="flex items-center gap-3">
 
-            <div className={`
-w-12
-h-12
-rounded-2xl
-
-flex
-items-center
-justify-center
-
-text-2xl
-
-${color}
-`}>
-
+            <div className={`w-12 h-12 rounded-2xl flex items-center justify-center text-2xl ${color}`}>
               {icon}
-
             </div>
 
             <div>
-
-              <h3 className="
-text-2xl
-font-black
-">
-
-                {title}
-
-              </h3>
-
-              <p className="
-text-gray-400
-font-medium
-text-sm
-">
-
-                {words.length} từ
-
-              </p>
-
+              <h3 className="text-2xl font-black">{title}</h3>
+              <p className="text-gray-400 font-medium text-sm">{words.length} từ</p>
             </div>
 
           </div>
 
           {words.length > 3 && (
-
             <button
-              onClick={() =>
-                setPreviewModal({
-                  title,
-                  words
-                })
-              }
-              className="
-px-4
-py-2
-
-rounded-xl
-
-bg-blue-50
-hover:bg-blue-100
-
-text-blue-600
-font-bold
-
-transition
-"
+              onClick={() => setPreviewModal({ title, words })}
+              className="px-4 py-2 rounded-xl bg-blue-50 hover:bg-blue-100 text-blue-600 font-bold transition"
             >
-
               Xem thêm →
-
             </button>
-
           )}
 
         </div>
 
         {/* WORDS */}
-        <div className="
-space-y-3
-">
+        <div className="space-y-3">
 
-          {words
-            .slice(0, 3)
-            .map((word) => (
+          {words.slice(0, 3).map((word) => (
 
-              <div
-                key={word.id}
-                className="
-bg-[#f5f9ff]
-rounded-2xl
-p-4
+            <div key={word.id} className="bg-[#f5f9ff] rounded-2xl p-4 border border-blue-50">
 
-border border-blue-50
-"
-              >
+              <div className="flex items-start justify-between gap-3">
 
-                <div className="
-flex
-items-center
-justify-between
-gap-3
-">
-
-                  <div>
-
-                    <h4 className="
-font-black
-text-lg
-">
-
-                      {word.word}
-
-                    </h4>
-
-                    <p className="
-text-gray-500
-mt-1
-">
-
-                      {word.meaning}
-                    </p>
-
+                <div>
+                  <div className="flex items-center gap-3">
+                    <h4 className="font-black text-lg">{word.word}</h4>
+                    {word.ipa && <span className="text-sm text-gray-400">{word.ipa}</span>}
                   </div>
 
-                  {word.word_type && (
+                  <p className="text-gray-500 mt-1">{word.meaning}</p>
 
-                    <span className="
-px-3
-py-1
-
-rounded-full
-
-bg-white
-border border-gray-100
-
-text-xs
-font-bold
-uppercase
-text-gray-500
-">
-
-                      {word.word_type}
-
-                    </span>
-
+                  {word.example && (
+                    <p className="text-gray-400 italic mt-2 text-sm">{word.example}</p>
                   )}
-
                 </div>
+
+                {word.word_type && (
+                  <span className="px-3 py-1 rounded-full bg-white text-xs font-bold uppercase border border-gray-100">
+                    {word.word_type}
+                  </span>
+                )}
 
               </div>
 
-            ))}
+            </div>
+
+          ))}
 
         </div>
 
@@ -301,13 +186,41 @@ text-gray-500
       )
     }
 
-    const { data } =
-      await supabase
-        .from("vocab_words")
-        .select("*")
-        .eq("set_id", id)
+    const { data } = await supabase.from("vocab_words").select("*").eq("set_id", id)
 
-    setWords(data || [])
+    let merged: WordType[] = data || []
+
+    try {
+      const { data: userData } = await supabase.auth.getUser()
+
+      const user = (userData as any)?.user
+
+      if (user) {
+        const { data: session } = await supabase
+          .from("learning_sessions")
+          .select("*")
+          .eq("user_id", user.id)
+          .eq("set_id", id)
+          .maybeSingle()
+
+        const allWords = (session as any)?.all_words || []
+
+        const map = new Map<string, number>()
+        allWords.forEach((w: any) => {
+          const n = Number(w.memoryStrength || 0)
+          if (w.id) map.set(w.id, Number.isNaN(n) ? 0 : n)
+        })
+
+        merged = (data || []).map((w: any) => ({
+          ...w,
+          memoryStrength: map.has(w.id) ? map.get(w.id) : w.memoryStrength ?? null,
+        }))
+      }
+    } catch (e) {
+      // ignore session merge errors and fallback to vocab_words
+    }
+
+    setWords(merged)
 
     setLoading(false)
   }
@@ -484,6 +397,11 @@ text-gray-500
 
           {/* FILL */}
           <button
+          onClick={() =>
+              router.push(
+                `/write/${id}`
+              )
+            }
             className="w-full max-w-full min-w-0 bg-white border border-gray-100 hover:-translate-y-1 hover:shadow-xl transition-all rounded-[24px] p-4 text-left min-h-[140px] md:min-h-[180px]"
           >
             <div className="w-12 h-12 md:w-14 md:h-14 rounded-2xl bg-blue-50 flex items-center justify-center mb-4">
@@ -501,6 +419,7 @@ text-gray-500
 
           {/* LISTEN */}
           <button
+          
             className="w-full max-w-full min-w-0 bg-white border border-gray-100 hover:-translate-y-1 hover:shadow-xl transition-all rounded-[24px] p-4 text-left min-h-[140px] md:min-h-[180px]"
           >
             <div className="w-12 h-12 md:w-14 md:h-14 rounded-2xl bg-blue-50 flex items-center justify-center mb-4">
@@ -542,31 +461,22 @@ gap-5
 ">
 
   {renderCompactSection(
-    "Từ đánh dấu sao",
-    words.filter(
-      (w: any) => w.starred
-    ),
-    "⭐",
-    "bg-yellow-100"
-  )}
-
-  {renderCompactSection(
     "Từ đã thuộc",
-    words.filter(
-      (w: any) =>
-        w.memoryStrength >= 4
-    ),
+    words.filter((w: any) => w.memoryStrength === 4),
     "🧠",
     "bg-green-100"
   )}
 
   {renderCompactSection(
-    "Từ chưa thuộc",
-    words.filter(
-      (w: any) =>
-        !w.memoryStrength ||
-        w.memoryStrength < 4
-    ),
+    "Từ đang học",
+    words.filter((w: any) => typeof w.memoryStrength === "number" && w.memoryStrength > 0 && w.memoryStrength < 4),
+    "🔥",
+    "bg-yellow-100"
+  )}
+
+  {renderCompactSection(
+    "Từ chưa học",
+    words.filter((w: any) => w.memoryStrength === null || w.memoryStrength === undefined || w.memoryStrength === 0),
     "📘",
     "bg-blue-100"
   )}

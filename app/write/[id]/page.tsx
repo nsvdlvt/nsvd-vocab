@@ -148,6 +148,9 @@ const [manualChecked, setManualChecked] =
 
         setQueue(shuffled)
 
+        // default question amount should be minimum of 20 and the number of words in the set
+        setQuestionAmount(String(Math.min(20, shuffled.length)))
+
         setLoading(false)
     }
 

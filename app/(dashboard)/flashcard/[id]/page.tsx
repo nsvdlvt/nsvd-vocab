@@ -4,6 +4,7 @@ import {
     use,
     useEffect,
     useState,
+    useRef,
 } from "react"
 
 import { supabase }
@@ -103,6 +104,10 @@ export default function FlashcardPage({
         useState("")
     const [showSettings, setShowSettings] =
         useState(false)
+
+    const audioRef = useRef<HTMLAudioElement | null>(null)
+    const [audioPlaying, setAudioPlaying] = useState(false)
+    const [autoPlay, setAutoPlay] = useState(false)
 
     const [frontMode, setFrontMode] =
         useState<
@@ -207,44 +212,99 @@ export default function FlashcardPage({
     const currentWord =
         words[currentIndex]
     const playAudio = () => {
+        setAudioPlaying(true)
 
+        // stop any ongoing speech or audio
         speechSynthesis.cancel()
+        if (audioRef.current) {
+            try {
+                audioRef.current.pause()
+            } catch {}
+            audioRef.current = null
+        }
 
         if (currentWord.audio_url) {
 
-            const audio =
-                new Audio(
-                    currentWord.audio_url
-                )
+            const audio = new Audio(currentWord.audio_url)
+            audioRef.current = audio
+
+            audio.onended = () => {
+                setAudioPlaying(false)
+                audioRef.current = null
+            }
+
+            audio.onerror = () => {
+                // fallback to speechSynthesis
+                const utterance = new SpeechSynthesisUtterance(currentWord.word)
+                utterance.lang = "en-US"
+                utterance.onend = () => setAudioPlaying(false)
+                speechSynthesis.speak(utterance)
+            }
 
             audio.play().catch(() => {
-
-                const utterance =
-                    new SpeechSynthesisUtterance(
-                        currentWord.word
-                    )
-
+                const utterance = new SpeechSynthesisUtterance(currentWord.word)
                 utterance.lang = "en-US"
-
-                speechSynthesis.speak(
-                    utterance
-                )
+                utterance.onend = () => setAudioPlaying(false)
+                speechSynthesis.speak(utterance)
             })
 
         } else {
-
-            const utterance =
-                new SpeechSynthesisUtterance(
-                    currentWord.word
-                )
-
+            const utterance = new SpeechSynthesisUtterance(currentWord.word)
             utterance.lang = "en-US"
-
-            speechSynthesis.speak(
-                utterance
-            )
+            utterance.onend = () => setAudioPlaying(false)
+            speechSynthesis.speak(utterance)
         }
     }
+
+    const escapeRegExp = (s: string) => s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")
+
+    const highlightExample = (text: string, word: string) => {
+        if (!text || !word) return text
+
+        const parts = text.split(new RegExp(`(${escapeRegExp(word)})`, 'gi'))
+
+        return parts.map((part, i) =>
+            part.toLowerCase() === word.toLowerCase() ? (
+                <span
+                    key={i}
+                    className="font-semibold"
+                    style={{
+                        color: '#06b6d4',
+                        textShadow: '0 0 6px rgba(6,182,212,0.25)'
+                    }}
+                >
+                    {part}
+                </span>
+            ) : (
+                part
+            )
+        )
+    }
+
+    useEffect(() => {
+        return () => {
+            if (audioRef.current) {
+                try {
+                    audioRef.current.pause()
+                } catch {}
+                audioRef.current = null
+            }
+            speechSynthesis.cancel()
+        }
+    }, [])
+
+    useEffect(() => {
+        if (!autoPlay) return
+
+        // only autoplay when the card index changes, not when flipping
+        const t = setTimeout(() => {
+            if (currentWord) {
+                playAudio()
+            }
+        }, 250)
+
+        return () => clearTimeout(t)
+    }, [currentIndex, autoPlay])
     const nextCard = () => {
 
         if (
@@ -480,9 +540,7 @@ export default function FlashcardPage({
             </div>
 
             {/* CARD */}
-            <div className="max-w-3xl mx-auto relative">
-
-                {settingsButton}
+            <div className="max-w-3xl mx-auto">
 
                 <div
                     onClick={() =>
@@ -490,6 +548,7 @@ export default function FlashcardPage({
                     }
                     className="
 flip-container
+relative
 w-full
 h-[500px]
 md:h-[620px]
@@ -513,6 +572,8 @@ items-center
 text-center
 p-10
 ">
+
+                            {!flipped && settingsButton}
 
                             <p className="text-gray-400 font-bold mb-5">
                                 {frontMode === "word"
@@ -552,33 +613,39 @@ p-10
 
                             {currentWord.example && (
                                 <p className="text-xl text-gray-500 mt-8 max-w-xl">
-                                    {currentWord.example}
+                                    {highlightExample(currentWord.example, currentWord.word)}
                                 </p>
                             )}
 
-                            {frontMode === "word" && (
-                                <button
-                                    onClick={(e) => {
-                                        e.stopPropagation()
-                                        playAudio()
-                                    }}
-                                    className="mt-8 w-16 h-16 rounded-2xl bg-blue-50 hover:bg-blue-100 flex items-center justify-center transition"
-                                >
-                                    <Volume2 className="w-7 h-7 text-blue-600" />
-                                </button>
-                            )}
+                                <div className="absolute bottom-4 right-4 md:bottom-6 md:right-8 z-30 flex items-center gap-3">
+                                    <button
+                                        onClick={(e) => { e.stopPropagation(); setAutoPlay(prev => !prev) }}
+                                        aria-pressed={autoPlay}
+                                        className={`w-10 h-6 flex items-center p-1 rounded-full transition ${autoPlay ? 'bg-blue-600' : 'bg-gray-200'}`}
+                                    >
+                                        <div className={`w-4 h-4 bg-white rounded-full shadow transform transition ${autoPlay ? 'translate-x-4' : 'translate-x-0'}`} />
+                                    </button>
+
+                                    <button
+                                        onClick={(e) => { e.stopPropagation(); if (!audioPlaying) playAudio() }}
+                                        aria-label="Play audio"
+                                        disabled={audioPlaying}
+                                        className={`p-1 transition-opacity duration-700 ${audioPlaying ? 'opacity-50 pointer-events-none cursor-not-allowed' : 'opacity-100'}`}
+                                    >
+                                        <Volume2 className="w-6 h-6 text-blue-600" />
+                                    </button>
+                                </div>
+
+                            
 
 
                         </div>
-
-                        {/* BACK - Meaning */}
                         <div className="flip-card-back bg-white shadow-[0_20px_60px_rgba(0,0,0,0.08)] border border-gray-100 flex flex-col justify-center items-center text-center p-10">
+                            {flipped && settingsButton}
+
                             <p className="text-gray-400 font-bold mb-5">
-                                {frontMode === "word"
-                                    ? "MEANING"
-                                    : "WORD"}
+                                {frontMode === "word" ? "MEANING" : "WORD"}
                             </p>
-                            
 
                             <h2 className="text-3xl md:text-5xl break-words font-black">
                                 {frontMode === "word"
@@ -611,27 +678,33 @@ p-10
 
                             {frontMode === "meaning" && currentWord.example && (
                                 <p className="text-xl text-gray-500 mt-8 max-w-xl">
-                                    {currentWord.example}
+                                    {highlightExample(currentWord.example, currentWord.word)}
                                 </p>
                             )}
 
-                            {frontMode === "meaning" && (
+                                <div className="absolute bottom-4 right-4 md:bottom-6 md:right-8 z-30 flex items-center gap-3">
+                                    <button
+                                        onClick={(e) => { e.stopPropagation(); setAutoPlay(prev => !prev) }}
+                                        aria-pressed={autoPlay}
+                                        className={`w-10 h-6 flex items-center p-1 rounded-full transition ${autoPlay ? 'bg-blue-600' : 'bg-gray-200'}`}
+                                    >
+                                        <div className={`w-4 h-4 bg-white rounded-full shadow transform transition ${autoPlay ? 'translate-x-4' : 'translate-x-0'}`} />
+                                    </button>
 
-                                <button
-                                    onClick={(e) => {
-                                        e.stopPropagation()
-                                        playAudio()
-                                    }}
-                                    className="mt-8 w-16 h-16 rounded-2xl bg-blue-50 hover:bg-blue-100 flex items-center justify-center transition"
-                                >
-                                    <Volume2 className="w-7 h-7 text-blue-600" />
-                                </button>
-
-                            )}
+                                    <button
+                                        onClick={(e) => { e.stopPropagation(); if (!audioPlaying) playAudio() }}
+                                        aria-label="Play audio"
+                                        disabled={audioPlaying}
+                                        className={`p-1 transition-opacity duration-700 ${audioPlaying ? 'opacity-50 pointer-events-none cursor-not-allowed' : 'opacity-100'}`}
+                                    >
+                                        <Volume2 className="w-6 h-6 text-blue-600" />
+                                    </button>
+                                </div>
+                            
                             {frontMode === "word" && (
 
                                 <p className="text-xl text-gray-500 mt-8 max-w-xl">
-                                    {currentWord.example}
+                                    {highlightExample(currentWord.example, currentWord.word)}
                                 </p>
 
                             )}

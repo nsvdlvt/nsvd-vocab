@@ -6,15 +6,15 @@ import {
   Home,
   PlusSquare,
   Folder,
+  Brain,
   Settings,
   Menu,
   Globe,
   ClipboardCheck,
   X,
+  LogOut,
   DollarSign,
   FolderPlus,
-  Pencil,
-  Upload,
 } from "lucide-react"
 import { useEffect, useState } from "react"
 import { supabase } from "@/lib/supabase"
@@ -34,18 +34,7 @@ export default function DashboardLayout({
   const [loading, setLoading] =
     useState(true)
 
-  type ProfileUser = {
-    email?: string
-    user_metadata?: {
-      full_name?: string | null
-      avatar_url?: string | null
-      [key: string]: unknown
-    }
-    [key: string]: unknown
-  }
-
-  const [user, setUser] = useState<ProfileUser | null>(null)
-  const [profileOpen, setProfileOpen] = useState(false)
+  const [user, setUser] = useState<any>(null)
 
   // CHECK SESSION
   useEffect(() => {
@@ -241,10 +230,7 @@ if (loading) {
 
         {/* USER */}
         <div className="p-4 border-t border-gray-100">
-          <div
-            onClick={() => setProfileOpen(true)}
-            className="bg-[#f5f9ff] rounded-3xl p-4 cursor-pointer"
-          >
+          <div className="bg-[#f5f9ff] rounded-3xl p-4">
             <div className="flex items-center gap-3 mb-4">
               {user?.user_metadata
                 ?.avatar_url ? (
@@ -274,20 +260,19 @@ if (loading) {
                 </h2>
               </div>
             </div>
-            {/* Logout removed — clicking this box opens profile modal */}
+
+            <button
+              onClick={handleLogout}
+              className="w-full bg-red-500 hover:bg-red-600 transition text-white py-4 rounded-2xl font-black flex items-center justify-center gap-2"
+            >
+              <LogOut size={20} />
+              Đăng xuất
+            </button>
           </div>
         </div>
-        {/** profile modal moved below the aside to avoid fixed positioning being clipped by transforms on the sidebar */}
       </aside>
 
       {/* MAIN */}
-      {profileOpen && (
-        <ProfileModal
-          user={user}
-          onClose={() => setProfileOpen(false)}
-          onUserChange={(next) => setUser(next)}
-        />
-      )}
       <div className="flex-1 lg:ml-[280px]">
         {/* MOBILE TOPBAR */}
         <header className="sticky top-0 z-30 bg-white/80 backdrop-blur-xl border-b border-gray-100 px-5 py-4 flex items-center justify-between lg:hidden">
