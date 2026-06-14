@@ -23,6 +23,11 @@ import {
     ChevronRight
 } from "lucide-react"
 
+const getLoginRedirectUrl = () => {
+    const redirectTo = `${window.location.pathname}${window.location.search}`
+    return `/login?redirectTo=${encodeURIComponent(redirectTo)}`
+}
+
 type TestItem = {
 
     id: string
@@ -68,7 +73,7 @@ export default function AdminTestsPage() {
 
                 if (!user) {
 
-                    router.push("/login")
+                    router.push(getLoginRedirectUrl())
 
                     return
                 }

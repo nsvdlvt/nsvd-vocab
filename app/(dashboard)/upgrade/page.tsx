@@ -19,7 +19,8 @@ export default function UpgradePage() {
 
       const user = session?.user
       if (!user) {
-        router.push("/login")
+        const redirectTo = `${window.location.pathname}${window.location.search}`
+        router.push(`/login?redirectTo=${encodeURIComponent(redirectTo)}`)
         return
       }
 
@@ -45,7 +46,8 @@ export default function UpgradePage() {
 
     const user = session?.user
     if (!user) {
-      router.push("/login")
+      const redirectTo = `${window.location.pathname}${window.location.search}`
+      router.push(`/login?redirectTo=${encodeURIComponent(redirectTo)}`)
       return
     }
 

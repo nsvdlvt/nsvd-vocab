@@ -61,7 +61,8 @@ export default function DashboardLayout({
       } = await supabase.auth.getSession()
 
       if (!session) {
-        router.push("/login")
+        const redirectTo = `${window.location.pathname}${window.location.search}`
+        router.push(`/login?redirectTo=${encodeURIComponent(redirectTo)}`)
         return
       }
 

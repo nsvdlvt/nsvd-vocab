@@ -177,6 +177,11 @@ const applyProgressToWords = (
 const getLearningSessionDraftKey = (userId: string, setId: string) =>
     `nsvd-learn-session:${userId}:${setId}`
 
+const getLoginRedirectUrl = () => {
+    const redirectTo = `${window.location.pathname}${window.location.search}`
+    return `/login?redirectTo=${encodeURIComponent(redirectTo)}`
+}
+
 const readLearningSessionDraft = (
     userId: string,
     setId: string
@@ -413,7 +418,7 @@ export default function LearnPage({
             } = await supabase.auth.getUser()
 
             if (!user) {
-                router.push("/login")
+                router.push(getLoginRedirectUrl())
                 return
             }
 

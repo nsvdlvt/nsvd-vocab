@@ -66,6 +66,11 @@ type ReviewRowWord = {
 
 const shuffleWords = <T,>(items: T[]) => [...items].sort(() => Math.random() - 0.5)
 
+const getLoginRedirectUrl = () => {
+  const redirectTo = `${window.location.pathname}${window.location.search}`
+  return `/login?redirectTo=${encodeURIComponent(redirectTo)}`
+}
+
 const first = <T,>(value: T | T[] | null | undefined) =>
   Array.isArray(value) ? value[0] : value
 
@@ -97,7 +102,7 @@ export default function ReviewSession({ setId }: ReviewSessionProps) {
       } = await supabase.auth.getUser()
 
       if (!user) {
-        router.push("/login")
+        router.push(getLoginRedirectUrl())
         return
       }
 

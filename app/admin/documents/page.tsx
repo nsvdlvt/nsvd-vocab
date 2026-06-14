@@ -17,6 +17,11 @@ import {
     ShieldAlert
 } from "lucide-react"
 
+const getLoginRedirectUrl = () => {
+    const redirectTo = `${window.location.pathname}${window.location.search}`
+    return `/login?redirectTo=${encodeURIComponent(redirectTo)}`
+}
+
 export default function AdminDocumentsPage() {
 
     const router = useRouter()
@@ -56,7 +61,7 @@ export default function AdminDocumentsPage() {
 
                 if (!user) {
 
-                    router.push("/login")
+                    router.push(getLoginRedirectUrl())
 
                     return
                 }

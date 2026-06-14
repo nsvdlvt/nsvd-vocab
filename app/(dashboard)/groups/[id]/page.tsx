@@ -86,7 +86,8 @@ export default function GroupDetailPage({
       } = await supabase.auth.getSession()
 
       if (!session) {
-        router.push("/login")
+        const redirectTo = `${window.location.pathname}${window.location.search}`
+        router.push(`/login?redirectTo=${encodeURIComponent(redirectTo)}`)
         return
       }
 
@@ -170,7 +171,8 @@ export default function GroupDetailPage({
 
     const user = session?.user
     if (!user) {
-      router.push("/login")
+      const redirectTo = `${window.location.pathname}${window.location.search}`
+      router.push(`/login?redirectTo=${encodeURIComponent(redirectTo)}`)
       return
     }
 
@@ -333,14 +335,14 @@ export default function GroupDetailPage({
             key={set.id}
             className="rounded-[2rem] border border-[#ead8c4] bg-[#fffaf3] p-6 shadow-[0_18px_48px_rgba(84,58,33,0.08)]"
           >
-            <div className="flex items-start justify-between gap-4">
-              <div>
+            <div className="flex flex-wrap items-start justify-between gap-3">
+              <div className="min-w-0 flex-1">
                 <p className="inline-flex rounded-full bg-[#fff1dd] px-3 py-1 text-xs font-black uppercase tracking-[0.16em] text-[#c96d35]">
                   {set.tag || "Tổng hợp"}
                 </p>
                 <h2 className="mt-4 text-2xl font-black text-[#241c17]">{set.title}</h2>
               </div>
-              <span className="rounded-full bg-[#1f1a17] px-3 py-1 text-sm font-black text-[#fff8f0]">
+              <span className="inline-flex h-9 shrink-0 items-center justify-center whitespace-nowrap rounded-full bg-[#1f1a17] px-4 text-sm font-black leading-none text-[#fff8f0]">
                 {set.words.length} từ
               </span>
             </div>

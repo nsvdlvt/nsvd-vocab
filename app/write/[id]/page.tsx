@@ -33,6 +33,11 @@ type QuestionMode =
     | "word"
     | "meaning"
 
+const getLoginRedirectUrl = () => {
+    const redirectTo = `${window.location.pathname}${window.location.search}`
+    return `/login?redirectTo=${encodeURIComponent(redirectTo)}`
+}
+
 export default function WritePage({
     params,
 }: {
@@ -121,7 +126,7 @@ const [manualChecked, setManualChecked] =
 
         if (!user) {
 
-            router.push("/login")
+            router.push(getLoginRedirectUrl())
 
             return
         }

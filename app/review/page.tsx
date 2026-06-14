@@ -42,6 +42,11 @@ type DueSetSummary = {
   dueCount: number
 }
 
+const getLoginRedirectUrl = () => {
+  const redirectTo = `${window.location.pathname}${window.location.search}`
+  return `/login?redirectTo=${encodeURIComponent(redirectTo)}`
+}
+
 const first = <T,>(value: T | T[] | null | undefined) =>
   Array.isArray(value) ? value[0] : value
 
@@ -57,7 +62,7 @@ export default function ReviewLandingPage() {
       } = await supabase.auth.getUser()
 
       if (!user) {
-        router.push("/login")
+        router.push(getLoginRedirectUrl())
         return
       }
 

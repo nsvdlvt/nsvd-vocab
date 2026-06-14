@@ -34,6 +34,11 @@ const normalize = (text: string) =>
 const shuffleWords = <T,>(items: T[]) =>
   [...items].sort(() => Math.random() - 0.5)
 
+const getLoginRedirectUrl = () => {
+  const redirectTo = `${window.location.pathname}${window.location.search}`
+  return `/login?redirectTo=${encodeURIComponent(redirectTo)}`
+}
+
 export default function ListenPage({
   params,
 }: {
@@ -141,7 +146,7 @@ export default function ListenPage({
       } = await supabase.auth.getUser()
 
       if (!user) {
-        router.push("/login")
+        router.push(getLoginRedirectUrl())
         return
       }
 

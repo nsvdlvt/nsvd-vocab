@@ -2,13 +2,24 @@
 
 import { supabase } from "@/lib/supabase"
 
+const getSafeRedirectPath = (value: string | null) => {
+  if (!value || !value.startsWith("/") || value.startsWith("//")) {
+    return "/home"
+  }
+
+  return value
+}
+
 export default function LoginPage() {
   const handleGoogleLogin = async () => {
+  const searchParams = new URLSearchParams(window.location.search)
+  const redirectPath = getSafeRedirectPath(searchParams.get("redirectTo"))
+
   await supabase.auth.signInWithOAuth({
     provider: "google",
     options: {
       redirectTo:
-        window.location.origin + "/home",
+        `${window.location.origin}/auth/callback?next=${encodeURIComponent(redirectPath)}`,
     },
   })
   }

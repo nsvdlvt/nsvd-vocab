@@ -88,7 +88,8 @@ export default function CommunityViewPage({
 
     const user = session?.user
     if (!user || !setDetail) {
-      router.push("/login")
+      const redirectTo = `${window.location.pathname}${window.location.search}`
+      router.push(`/login?redirectTo=${encodeURIComponent(redirectTo)}`)
       return
     }
 

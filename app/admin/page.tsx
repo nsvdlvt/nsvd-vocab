@@ -20,6 +20,11 @@ import {
     ClipboardCheck
 } from "lucide-react"
 
+const getLoginRedirectUrl = () => {
+    const redirectTo = `${window.location.pathname}${window.location.search}`
+    return `/login?redirectTo=${encodeURIComponent(redirectTo)}`
+}
+
 export default function AdminPage() {
 
     const router = useRouter()
@@ -44,7 +49,7 @@ export default function AdminPage() {
 
                 if (!user) {
 
-                    router.push("/login")
+                    router.push(getLoginRedirectUrl())
 
                     return
                 }
