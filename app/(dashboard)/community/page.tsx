@@ -1,328 +1,268 @@
 "use client"
 
-import { useEffect, useState } from "react"
-import { supabase } from "@/lib/supabase"
+import { useEffect, useMemo, useState } from "react"
 import { useRouter } from "next/navigation"
+import { ArrowRight, Bookmark, Search, Sparkles } from "lucide-react"
+import { supabase } from "@/lib/supabase"
 
 type CommunitySet = {
   id: string
   title: string
-  icon?: string
   tag?: string
-  created_at: string
+  owner_name?: string
+  total_words: number
   downloads?: number
-  total_words?: number
+}
+
+type CommunitySetRow = {
+  id: string
+  title: string
+  tag?: string | null
+  author_name?: string | null
+  downloads?: number | null
+  vocab_words?: { count: number }[]
 }
 
 export default function CommunityPage() {
-
   const router = useRouter()
-
-  const [loading, setLoading] =
-    useState(true)
-
-  const [search, setSearch] =
-    useState("")
-
-  const [sets, setSets] =
-    useState<CommunitySet[]>([])
-
-  const fetchSets = async () => {
-
-    setLoading(true)
-
-    const { data, error } =
-      await supabase
-        .from("vocab_sets")
-        .select(`
-          id,
-          title,
-          icon,
-          tag,
-          created_at,
-          downloads,
-          vocab_words(count)
-        `)
-        .eq("is_public", true)
-        .order("downloads", {
-          ascending: false,
-        })
-
-    if (error) {
-      console.log(error)
-      setLoading(false)
-      return
-    }
-
-    const formatted = data.map(
-      (item: any) => ({
-        id: item.id,
-        title: item.title,
-        icon: item.icon,
-        tag: item.tag,
-        created_at:
-          item.created_at,
-
-        downloads:
-          item.downloads || 0,
-
-        total_words:
-          item.vocab_words?.[0]
-            ?.count || 0,
-      })
-    )
-
-    setSets(formatted)
-
-    setLoading(false)
-  }
+  const [loading, setLoading] = useState(true)
+  const [search, setSearch] = useState("")
+  const [sets, setSets] = useState<CommunitySet[]>([])
 
   useEffect(() => {
+    const fetchSets = async () => {
+      setLoading(true)
+
+      const { data, error } = await supabase
+        .from("vocab_sets")
+        .select(
+          `
+            id,
+            title,
+            tag,
+            author_name,
+            downloads,
+            vocab_words(count)
+          `
+        )
+        .eq("is_public", true)
+        .order("downloads", { ascending: false })
+
+      if (error) {
+        console.log(error)
+        setLoading(false)
+        return
+      }
+
+      const formatted = ((data || []) as CommunitySetRow[]).map((item) => ({
+        id: item.id,
+        title: item.title,
+        tag: item.tag || "Tổng hợp",
+        owner_name: item.author_name || "Cộng đồng",
+        total_words: item.vocab_words?.[0]?.count || 0,
+        downloads: item.downloads || 0,
+      }))
+
+      setSets(formatted)
+      setLoading(false)
+    }
+
     fetchSets()
   }, [])
 
-  const filteredSets =
-    sets.filter((set) =>
-      set.title
-        .toLowerCase()
-        .includes(
-          search.toLowerCase()
-        )
-    )
+  const filteredSets = useMemo(
+    () =>
+      sets.filter((set) =>
+        [set.title, set.tag || "", set.owner_name || ""]
+          .join(" ")
+          .toLowerCase()
+          .includes(search.toLowerCase())
+      ),
+    [search, sets]
+  )
 
-  const saveSet = async (
-    setId: string
-  ) => {
-
+  const saveSet = async (setId: string) => {
     const {
       data: { session },
-    } =
-      await supabase.auth.getSession()
+    } = await supabase.auth.getSession()
 
     const user = session?.user
+    if (!user) {
+      router.push("/login")
+      return
+    }
 
-    if (!user) return
-
-    // lấy set gốc
-    const { data: setData } =
-      await supabase
-        .from("vocab_sets")
-        .select("*")
-        .eq("id", setId)
-        .single()
+    const { data: setData } = await supabase
+      .from("vocab_sets")
+      .select("*")
+      .eq("id", setId)
+      .single()
 
     if (!setData) return
 
-    // clone set
-    const { data: newSet } =
-      await supabase
-        .from("vocab_sets")
-        .insert({
-          user_id: user.id,
+    const { data: newSet } = await supabase
+      .from("vocab_sets")
+      .insert({
+        user_id: user.id,
+        title: setData.title,
+        description: setData.description,
+        tag: setData.tag,
+        icon: setData.icon,
+        is_public: false,
+      })
+      .select()
+      .single()
 
-          title:
-            setData.title,
+    const { data: words } = await supabase
+      .from("vocab_words")
+      .select("*")
+      .eq("set_id", setId)
 
-          icon:
-            setData.icon,
-
-          tag:
-            setData.tag,
-
-          is_public: false,
-        })
-        .select()
-        .single()
-
-    // lấy words
-    const { data: words } =
-      await supabase
-        .from("vocab_words")
-        .select("*")
-        .eq("set_id", setId)
-
-    // clone words
-    if (words?.length) {
-
-      await supabase
-        .from("vocab_words")
-        .insert(
-          words.map((word) => ({
-            set_id: newSet.id,
-
-            word: word.word,
-            meaning:
-              word.meaning,
-
-            ipa: word.ipa,
-
-            word_type:
-              word.word_type,
-
-            example:
-              word.example,
-
-            synonyms:
-              word.synonyms,
-          }))
-        )
+    if (newSet && words?.length) {
+      await supabase.from("vocab_words").insert(
+        words.map((word) => ({
+          set_id: newSet.id,
+          word: word.word,
+          meaning: word.meaning,
+          ipa: word.ipa,
+          word_type: word.word_type,
+          example: word.example,
+          synonyms: word.synonyms,
+          audio_url: word.audio_url,
+        }))
+      )
     }
 
-    // tăng downloads
     await supabase
       .from("vocab_sets")
       .update({
-        downloads:
-          (setData.downloads || 0) + 1,
+        downloads: (setData.downloads || 0) + 1,
       })
       .eq("id", setId)
 
-    alert(
-      "Đã lưu vào kho 😎🔥"
-    )
+    router.push(`/edit/${newSet.id}?source=${setId}`)
   }
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center min-h-screen">
-        <div className="w-16 h-16 border-4 border-blue-200 border-t-blue-600 rounded-full animate-spin" />
-      </div>
+      <section className="dashboard-shell min-h-[calc(100vh-5rem)]">
+        <div className="dashboard-loading">
+          <div className="dashboard-spinner" />
+          <p className="dashboard-loading-text">Đang tải bộ từ cộng đồng</p>
+        </div>
+      </section>
     )
   }
 
   return (
-    <section className="p-5 md:p-10">
-
-      {/* TOP */}
-      <div className="mb-10">
-
-        <p className="text-gray-500 text-lg">
-          Shared by community ✨
-        </p>
-
-        <h1 className="text-5xl font-black mt-2">
-          Community
-        </h1>
-
-      </div>
-
-      {/* SEARCH */}
-      <div className="bg-white rounded-[30px] p-4 border border-gray-100 shadow-sm mb-10">
-
-        <input
-          value={search}
-          onChange={(e) =>
-            setSearch(
-              e.target.value
-            )
-          }
-          placeholder="Tìm bộ từ..."
-          className="w-full bg-[#f5f9ff] rounded-2xl p-5 outline-none"
-        />
-      </div>
-
-      {/* EMPTY */}
-      {filteredSets.length === 0 && (
-        <div className="flex flex-col items-center justify-center py-32 text-center">
-
-          <div className="text-8xl mb-6">
-            😭
+    <section className="dashboard-shell">
+      <div className="dashboard-hero">
+        <div className="dashboard-hero-copy">
+          <div className="dashboard-pill">
+            <Sparkles className="h-4 w-4" />
+            Khám phá bộ từ do cộng đồng chia sẻ
           </div>
-
-          <h2 className="text-4xl font-black mb-4">
-            Chưa có bộ từ nào
-          </h2>
-
-          <p className="text-gray-500">
-            Hãy là người đầu tiên chia sẻ 😎🔥
+          <h1 className="mt-5 text-4xl font-black tracking-[-0.04em] text-[#211914] md:text-6xl">
+            Community
+            <span className="block text-[#c96d35]">cùng nhau học tập .</span>
+          </h1>
+          <p className="mt-5 max-w-2xl text-lg leading-8 text-[#66584b]">
+            Chọn bộ từ phù hợp, xem nhanh số lượng từ và lưu về kho của bạn để tiếp tục học.
           </p>
-
         </div>
-      )}
 
-      {/* GRID */}
-      <div className="grid sm:grid-cols-2 xl:grid-cols-3 gap-6">
+        <div className="dashboard-hero-panel">
+          <div className="dashboard-panel-dark">
+            <p className="text-xs uppercase tracking-[0.24em] text-[#d6b396]">Tìm kiếm nhanh</p>
+            <div className="mt-4 flex items-center gap-3 rounded-[1.5rem] bg-white/10 px-4 py-4">
+              <Search className="h-5 w-5 text-[#e1c5ab]" />
+              <input
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                placeholder="Tìm bộ từ, chủ đề hoặc tác giả..."
+                className="w-full bg-transparent text-white outline-none placeholder:text-[#cfb39a]"
+              />
+            </div>
+            <div className="mt-5 grid grid-cols-2 gap-4">
+              <div className="rounded-[1.5rem] bg-white/8 p-4">
+                <p className="text-sm text-[#d9bba0]">Bộ công khai</p>
+                <p className="mt-2 text-3xl font-black">{sets.length}</p>
+              </div>
+              <div className="rounded-[1.5rem] bg-white/8 p-4">
+                <p className="text-sm text-[#d9bba0]">Lượt lưu</p>
+                <p className="mt-2 text-3xl font-black">
+                  {sets.reduce((sum, item) => sum + (item.downloads || 0), 0)}
+                </p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
 
-        {filteredSets.map(
-          (set) => (
-
+      <div className="mt-6 grid gap-5 md:grid-cols-2 xl:grid-cols-3">
+        {filteredSets.length === 0 ? (
+          <div className="dashboard-empty-state md:col-span-2 xl:col-span-3">
+            <h2 className="text-3xl font-black text-[#241c17]">Chưa có bộ từ phù hợp</h2>
+            <p className="mt-3 max-w-xl text-[#66584b]">
+              Thử từ khóa khác hoặc là người đầu tiên chia sẻ một bộ từ cho cộng đồng.
+            </p>
+          </div>
+        ) : (
+          filteredSets.map((set) => (
             <div
               key={set.id}
-              className="bg-white rounded-[35px] p-5 md:p-6 border border-gray-100 shadow-sm hover:-translate-y-1 hover:shadow-xl transition-all"
+              onClick={() => router.push(`/community/view/${set.id}`)}
+              className="dashboard-card cursor-pointer transition hover:-translate-y-1"
             >
-
-              {/* TOP */}
-              <div className="flex flex-col items-center text-center">
-
-                {/* ICON */}
-                <div className="w-20 h-20 rounded-[28px] bg-blue-600 text-white flex items-center justify-center text-4xl shadow-lg shadow-blue-200">
-                  {set.icon || "📘"}
+              <div className="flex items-start justify-between gap-4">
+                <div>
+                  <div className="rounded-full bg-[#f1e4d6] px-3 py-2 text-xs font-bold uppercase tracking-[0.18em] text-[#8d6542]">
+                    {set.tag}
+                  </div>
+                  <h2 className="mt-4 line-clamp-2 text-2xl font-black text-[#221a16]">
+                    {set.title}
+                  </h2>
                 </div>
-
-                {/* TITLE */}
-                <h2 className="text-2xl md:text-3xl font-black line-clamp-2 break-all max-w-full px-2 leading-tight mt-5">
-                  {set.title}
-                </h2>
-
-                {/* TAG */}
-                <div className="mt-4 inline-flex bg-blue-50 text-blue-600 px-4 py-2 rounded-full text-sm font-bold">
-                  #{set.tag || "General"}
-                </div>
-
+                <span className="rounded-2xl bg-[#fbf1e6] px-3 py-2 text-sm font-black text-[#c96d35]">
+                  {set.total_words}
+                </span>
               </div>
 
-              {/* INFO */}
-              <div className="space-y-4 mt-8">
-
-                <div className="bg-[#f5f9ff] rounded-2xl px-5 py-4 flex justify-between">
-                  <span className="text-gray-500">
-                    Số từ
-                  </span>
-
-                  <span className="font-black">
-                    {set.total_words}
-                  </span>
+              <div className="mt-6 space-y-3 text-sm text-[#66584b]">
+                <div className="dashboard-soft-card flex items-center justify-between">
+                  <span>Số lượng từ</span>
+                  <span className="font-black text-[#241c17]">{set.total_words}</span>
                 </div>
-
-                <div className="bg-[#f5f9ff] rounded-2xl px-5 py-4 flex justify-between">
-                  <span className="text-gray-500">
-                    Downloads
-                  </span>
-
-                  <span className="font-black">
-                    {set.downloads}
-                  </span>
+                <div className="dashboard-soft-card flex items-center justify-between">
+                  <span>Người chia sẻ</span>
+                  <span className="font-black text-[#241c17]">{set.owner_name}</span>
                 </div>
-
               </div>
 
-              {/* ACTIONS */}
-              <div className="flex gap-3 mt-6">
-
+              <div className="mt-6 flex gap-3">
                 <button
-                  onClick={() =>
-                    router.push(
-                      `/vocabsets/${set.id}`
-                    )
-                  }
-                  className="flex-1 bg-black text-white py-4 rounded-2xl font-black hover:opacity-90 transition"
-                >
-                  👀 Xem
-                </button>
-
-                <button
-                  onClick={() =>
+                  onClick={(e) => {
+                    e.stopPropagation()
                     saveSet(set.id)
-                  }
-                  className="flex-1 bg-blue-600 text-white py-4 rounded-2xl font-black hover:bg-blue-700 transition"
+                  }}
+                  className="flex flex-1 items-center justify-center gap-2 rounded-2xl bg-[#d96d32] px-4 py-4 font-black text-white transition hover:bg-[#c25f29]"
                 >
-                  ⬇ Lưu
+                  <Bookmark className="h-4 w-4" />
+                  Lưu
                 </button>
-
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation()
+                    router.push(`/community/view/${set.id}`)
+                  }}
+                  className="flex flex-1 items-center justify-center gap-2 rounded-2xl border border-[#e2d2bf] bg-[#fffaf3] px-4 py-4 font-black text-[#241c17] transition hover:border-[#c96d35] hover:text-[#c96d35]"
+                >
+                  Xem
+                  <ArrowRight className="h-4 w-4" />
+                </button>
               </div>
-
             </div>
-          )
+          ))
         )}
       </div>
     </section>

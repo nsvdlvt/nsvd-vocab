@@ -26,6 +26,15 @@ type WordType = {
 memoryStrength?: number
 }
 
+type SessionWordProgress = {
+  id?: string
+  memoryStrength?: number
+}
+
+type SessionRow = {
+  all_words?: SessionWordProgress[] | null
+}
+
 import { use } from "react"
 
 export default function SetPage({
@@ -58,7 +67,66 @@ export default function SetPage({
     words: WordType[]
   } | null>(null)
   useEffect(() => {
-    fetchSet()
+    const loadSet = async () => {
+      const { data: setData } =
+        await supabase
+          .from("vocab_sets")
+          .select("*")
+          .eq("id", id)
+          .single()
+
+      if (setData) {
+        setTitle(setData.title)
+        setDescription(
+          setData.description || ""
+        )
+        setAuthor(
+          setData.author_name || ""
+        )
+        setAuthorAvatar(
+          setData.author_avatar || ""
+        )
+      }
+
+      const { data } = await supabase.from("vocab_words").select("*").eq("set_id", id)
+
+      let merged: WordType[] = data || []
+
+      try {
+        const { data: userData } = await supabase.auth.getUser()
+
+        const user = userData.user
+
+        if (user) {
+          const { data: session } = await supabase
+            .from("learning_sessions")
+            .select("*")
+            .eq("user_id", user.id)
+            .eq("set_id", id)
+            .maybeSingle()
+
+          const allWords = ((session as SessionRow | null)?.all_words || [])
+
+          const map = new Map<string, number>()
+          allWords.forEach((w) => {
+            const n = Number(w.memoryStrength || 0)
+            if (w.id) map.set(w.id, Number.isNaN(n) ? 0 : n)
+          })
+
+          merged = (data || []).map((w: WordType) => ({
+            ...w,
+            memoryStrength: map.has(w.id) ? map.get(w.id) : w.memoryStrength ?? null,
+          }))
+        }
+      } catch {
+        // ignore session merge errors and fallback to vocab_words
+      }
+
+      setWords(merged)
+      setLoading(false)
+    }
+
+    loadSet()
   }, [id])
   useEffect(() => {
 
@@ -165,66 +233,6 @@ export default function SetPage({
       </div>
     )
   }
-  const fetchSet = async () => {
-    const { data: setData } =
-      await supabase
-        .from("vocab_sets")
-        .select("*")
-        .eq("id", id)
-        .single()
-
-    if (setData) {
-      setTitle(setData.title)
-      setDescription(
-        setData.description || ""
-      )
-      setAuthor(
-        setData.author_name || ""
-      )
-      setAuthorAvatar(
-        setData.author_avatar || ""
-      )
-    }
-
-    const { data } = await supabase.from("vocab_words").select("*").eq("set_id", id)
-
-    let merged: WordType[] = data || []
-
-    try {
-      const { data: userData } = await supabase.auth.getUser()
-
-      const user = (userData as any)?.user
-
-      if (user) {
-        const { data: session } = await supabase
-          .from("learning_sessions")
-          .select("*")
-          .eq("user_id", user.id)
-          .eq("set_id", id)
-          .maybeSingle()
-
-        const allWords = (session as any)?.all_words || []
-
-        const map = new Map<string, number>()
-        allWords.forEach((w: any) => {
-          const n = Number(w.memoryStrength || 0)
-          if (w.id) map.set(w.id, Number.isNaN(n) ? 0 : n)
-        })
-
-        merged = (data || []).map((w: any) => ({
-          ...w,
-          memoryStrength: map.has(w.id) ? map.get(w.id) : w.memoryStrength ?? null,
-        }))
-      }
-    } catch (e) {
-      // ignore session merge errors and fallback to vocab_words
-    }
-
-    setWords(merged)
-
-    setLoading(false)
-  }
-
   if (loading) {
     return (
       <div className="flex items-center justify-center min-h-[70vh]">
@@ -253,6 +261,11 @@ export default function SetPage({
 
         {/* SPACED REP */}
         <button
+          onClick={() =>
+            router.push(
+              `/review/${id}`
+            )
+          }
           className="flex items-center gap-2 bg-blue-600 text-white hover:bg-blue-700 transition rounded-2xl px-4 py-3 shadow-lg shadow-blue-200"
         >
           <CalendarDays className="w-5 h-5" />
@@ -419,7 +432,11 @@ export default function SetPage({
 
           {/* LISTEN */}
           <button
-          
+            onClick={() =>
+              router.push(
+                `/listen/${id}`
+              )
+            }
             className="w-full max-w-full min-w-0 bg-white border border-gray-100 hover:-translate-y-1 hover:shadow-xl transition-all rounded-[24px] p-4 text-left min-h-[140px] md:min-h-[180px]"
           >
             <div className="w-12 h-12 md:w-14 md:h-14 rounded-2xl bg-blue-50 flex items-center justify-center mb-4">
@@ -437,6 +454,11 @@ export default function SetPage({
 
           {/* TEST */}
           <button
+            onClick={() =>
+              router.push(
+                `/review/${id}`
+              )
+            }
             className="w-full max-w-full min-w-0 bg-white border border-gray-100 hover:-translate-y-1 hover:shadow-xl transition-all rounded-[24px] p-4 text-left min-h-[140px] md:min-h-[180px]"
           >
             <div className="w-12 h-12 md:w-14 md:h-14 rounded-2xl bg-blue-50 flex items-center justify-center mb-4">
@@ -462,21 +484,21 @@ gap-5
 
   {renderCompactSection(
     "Từ đã thuộc",
-    words.filter((w: any) => w.memoryStrength === 4),
+    words.filter((w) => w.memoryStrength === 4),
     "🧠",
     "bg-green-100"
   )}
 
   {renderCompactSection(
     "Từ đang học",
-    words.filter((w: any) => typeof w.memoryStrength === "number" && w.memoryStrength > 0 && w.memoryStrength < 4),
+    words.filter((w) => typeof w.memoryStrength === "number" && w.memoryStrength > 0 && w.memoryStrength < 4),
     "🔥",
     "bg-yellow-100"
   )}
 
   {renderCompactSection(
     "Từ chưa học",
-    words.filter((w: any) => w.memoryStrength === null || w.memoryStrength === undefined || w.memoryStrength === 0),
+    words.filter((w) => w.memoryStrength === null || w.memoryStrength === undefined || w.memoryStrength === 0),
     "📘",
     "bg-blue-100"
   )}

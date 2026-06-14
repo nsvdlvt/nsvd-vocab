@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useEffect, useState } from "react"
 import { supabase } from "@/lib/supabase"
 import { useRouter } from "next/navigation"
 
@@ -77,6 +77,56 @@ const [showTags, setShowTags] =
     useState<number[]>([])
   const [closing, setClosing] =
     useState(false)
+
+  useEffect(() => {
+    const cloneRaw = sessionStorage.getItem(
+      "community_clone_payload"
+    )
+
+    if (!cloneRaw) return
+
+    try {
+      const cloneData = JSON.parse(cloneRaw)
+
+      if (cloneData.title) {
+        setTitle(cloneData.title)
+      }
+
+      if (cloneData.description) {
+        setDescription(cloneData.description)
+      }
+
+      if (cloneData.tag) {
+        setTag(cloneData.tag)
+      }
+
+      if (cloneData.icon) {
+        setIcon(cloneData.icon)
+      }
+
+      if (
+        Array.isArray(cloneData.words) &&
+        cloneData.words.length
+      ) {
+        setWords(
+          cloneData.words.map((word: any) => ({
+            word: word.word || "",
+            meaning: word.meaning || "",
+            ipa: word.ipa || "",
+            type: word.type || "",
+            example: word.example || "",
+            synonyms: word.synonyms || "",
+          }))
+        )
+      }
+    } catch (error) {
+      console.log(error)
+    } finally {
+      sessionStorage.removeItem(
+        "community_clone_payload"
+      )
+    }
+  }, [])
 
   const updateWord = (
     index: number,
@@ -518,22 +568,15 @@ const [showTags, setShowTags] =
                     </p>
 
                     <div className="bg-white rounded-2xl p-4 text-sm whitespace-pre-line border border-purple-100 overflow-auto max-h-[250px]">
-                      {`Hãy tạo danh sách từ vựng tiếng Anh theo chủ đề [CHỦ ĐỀ] với định dạng sau, mỗi dòng một từ, các cột cách nhau bằng dấu Tab:
-
-từ vựng	phiên âm	loại từ	nghĩa tiếng Việt	ví dụ tiếng Anh	synonyms
-
-Ví dụ:
-abandon	/əˈbændən/	verb	từ bỏ	She abandoned her old car.	leave, quit`}
-                    </div>
+                      {`Hãy tạo danh sách từ vựng tiếng Anh theo chủ đề [CHỦ ĐỀ] với định dạng được thiết lập sẵn`} 
+                       </div>
 
                     <div className="flex flex-wrap gap-3 mt-4">
 
                       <button
                         onClick={() => {
                           navigator.clipboard.writeText(
-                            `Hãy tạo danh sách từ vựng tiếng Anh theo chủ đề [CHỦ ĐỀ] với định dạng sau, mỗi dòng một từ, các cột cách nhau bằng dấu Tab:
-
-từ vựng	phiên âm	loại từ	nghĩa tiếng Việt	ví dụ tiếng Anh	synonyms`
+                            `Hãy tạo danh sách từ vựng tiếng Anh theo chủ đề [CHỦ ĐỀ] với định dạng được thiết lập sẵn`
                           )
 
                           setPopup({

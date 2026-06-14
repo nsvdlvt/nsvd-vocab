@@ -3,255 +3,395 @@
 import Link from "next/link"
 import { useEffect, useState } from "react"
 import { useRouter } from "next/navigation"
+import {
+  ArrowRight,
+  BookOpen,
+  Brain,
+  ChartColumn,
+  Check,
+  Layers3,
+  Sparkles,
+  Target,
+} from "lucide-react"
 import { supabase } from "@/lib/supabase"
+
+const features = [
+  {
+    title: "Học có nhịp độ rõ ràng",
+    description:
+      "Từ việc thêm từ mới đến lịch ôn tập, mọi bước đều được sắp xếp để bạn không học theo cảm hứng.",
+    icon: Target,
+  },
+  {
+    title: "Flashcard, quiz và nhiều chế độ học",
+    description:
+      "Chuyển đổi linh hoạt giữa nhiều chế độ học trong cùng một bộ từ để ghi nhớ sâu hơn và bớt nhàm chán.",
+    icon: Layers3,
+  },
+  {
+    title: "Theo dõi tiến độ mỗi ngày",
+    description:
+      "Nhìn thấy số từ đã nhớ, chuỗi học và mức độ thành thạo để biết hôm nay nên làm gì tiếp theo.",
+    icon: ChartColumn,
+  },
+]
+
+const steps = [
+  "Tạo bộ từ vựng theo bài học, chủ đề hoặc kỳ thi.",
+  "Học nhanh bằng flashcard, sau đó chuyển sang quiz và luyện viết lại.",
+  "Hệ thống nhắc ôn đúng lúc để bạn nhớ lâu hơn mà không bị quá tải.",
+]
+
+const stats = [
+  { value: "06", label: "chế độ học trong một lộ trình" },
+  { value: "SRS", label: "nhắc lịch ôn tập thông minh" },
+  { value: "AI", label: "hỗ trợ học, quiz và theo dõi tiến độ" },
+]
 
 export default function LandingPage() {
   const router = useRouter()
+  const [loading, setLoading] = useState(true)
 
-    const [loading, setLoading] =
-      useState(true)
-      useEffect(() => {
-      const checkSession = async () => {
-        const {
-          data: { session },
-        } = await supabase.auth.getSession()
+  useEffect(() => {
+    const checkSession = async () => {
+      const {
+        data: { session },
+      } = await supabase.auth.getSession()
 
-        if (session) {
-          router.push("/home")
-        } else {
-          setLoading(false)
-        }
+      if (session) {
+        router.push("/home")
+        return
       }
 
-      checkSession()
-    }, [])
-    if (loading) {
-      return (
-        <main className="min-h-screen flex items-center justify-center bg-[#f5f9ff]">
-          <div className="flex flex-col items-center">
-            <div className="w-16 h-16 rounded-full border-4 border-blue-100"></div>
-
-            <div className="absolute w-16 h-16 rounded-full border-4 border-transparent border-t-blue-600 animate-spin"></div>
-          </div>
-        </main>
-      )
+      setLoading(false)
     }
-  return (
-    <main className="min-h-screen bg-[#f5f9ff] text-[#111827] overflow-hidden">
-      {/* HEADER */}
-      <header className="fixed top-0 left-0 w-full bg-white/80 backdrop-blur-md border-b border-gray-100 z-50">
-        <div className="max-w-7xl mx-auto px-5 md:px-8 h-16 flex items-center justify-between">
-          {/* LOGO */}
-          <div className="flex items-center gap-3">
-            <img
-              src="/logo.png"
-              alt="lgo"
-              className="w-12 h-12 rounded-2xl object-cover"
-            />
-            <h1 className="font-black text-xl">NSVD Vocab</h1>
-          </div>
 
-          {/* DESKTOP NAV */}
-          <nav className="hidden md:flex items-center gap-10 font-semibold text-gray-500">
-            <a
-              href="#features"
-              className="hover:text-blue-600 border-b-2 border-transparent hover:border-blue-500 pb-1 transition"
-            >
+    checkSession()
+  }, [router])
+
+  if (loading) {
+    return (
+      <main className="flex min-h-screen items-center justify-center bg-[radial-gradient(circle_at_top,#fff8e8_0%,#f7f1e8_38%,#efe7da_100%)]">
+        <div className="flex flex-col items-center gap-5">
+          <div className="relative flex h-16 w-16 items-center justify-center">
+            <div className="absolute inset-0 rounded-full border-4 border-[#d7c8b6]" />
+            <div className="absolute inset-0 rounded-full border-4 border-transparent border-t-[#c46a2f] animate-spin" />
+          </div>
+          <p className="text-sm font-semibold uppercase tracking-[0.24em] text-[#7f6c59]">
+            Đang tải lộ trình học tập
+          </p>
+        </div>
+      </main>
+    )
+  }
+
+  return (
+    <main className="min-h-screen overflow-hidden bg-[#f6efe4] text-[#1f1a17]">
+      <div className="absolute inset-x-0 top-0 -z-10 h-[38rem] bg-[radial-gradient(circle_at_top_left,#fff7cc_0%,rgba(255,247,204,0.65)_22%,rgba(246,239,228,0)_58%)]" />
+      <div className="absolute right-[-6rem] top-24 -z-10 h-72 w-72 rounded-full bg-[#d96d32]/15 blur-3xl" />
+      <div className="absolute left-[-4rem] top-[30rem] -z-10 h-72 w-72 rounded-full bg-[#f3c969]/20 blur-3xl" />
+
+      <header className="sticky top-0 z-30 border-b border-[#3f3227]/8 bg-[#f6efe4]/85 backdrop-blur-xl">
+        <div className="mx-auto flex h-20 max-w-7xl items-center justify-between px-5 md:px-8">
+          <Link href="/" className="flex items-center gap-3">
+            <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-[#1f1a17] text-[10px] font-black text-[#f8f3ec] shadow-[0_12px_30px_rgba(31,26,23,0.16)]">
+              NSVD
+            </div>
+            <div>
+              <p className="text-xs font-bold uppercase tracking-[0.28em] text-[#a17348]">
+                NSVD Vocab
+              </p>
+              <p className="text-sm text-[#5f5144]">Học từ vựng có hệ thống</p>
+            </div>
+          </Link>
+
+          <nav className="hidden items-center gap-8 text-sm font-semibold text-[#5d4a3a] md:flex">
+            <a href="#features" className="transition hover:text-[#c46a2f]">
               Tính năng
             </a>
-
-            <a
-              href="#how"
-              className="hover:text-blue-600 border-b-2 border-transparent hover:border-blue-500 pb-1 transition"
-            >
+            <a href="#process" className="transition hover:text-[#c46a2f]">
               Cách học
             </a>
-
-            <a
-              href="#review"
-              className="hover:text-blue-600 border-b-2 border-transparent hover:border-blue-500 pb-1 transition"
-            >
-              Đánh giá
-            </a>
-
-            <a
-              href="#faq"
-              className="hover:text-blue-600 border-b-2 border-transparent hover:border-blue-500 pb-1 transition"
-            >
-              FAQ
+            <a href="#preview" className="transition hover:text-[#c46a2f]">
+              Giao diện
             </a>
           </nav>
 
-          {/* ACTIONS */}
           <div className="flex items-center gap-3">
             <Link
               href="/login"
-              className="hidden md:block font-semibold text-gray-700 hover:text-blue-600 transition"
+              className="hidden text-sm font-semibold text-[#4f4033] transition hover:text-[#c46a2f] md:inline-flex"
             >
               Đăng nhập
             </Link>
-
             <Link
               href="/login"
-              className="bg-blue-600 hover:bg-blue-700 transition text-white font-bold px-5 py-3 rounded-2xl shadow-lg shadow-blue-200 text-sm md:text-base"
+              className="inline-flex items-center gap-2 rounded-full bg-[#1f1a17] px-5 py-3 text-sm font-bold text-[#fff7ef] transition hover:bg-[#31271f]"
             >
-              Bắt đầu miễn phí →
+              Bắt đầu miễn phí
+              <ArrowRight className="h-4 w-4" />
             </Link>
           </div>
         </div>
       </header>
 
-      {/* HERO */}
-      <section className="pt-32 pb-16 px-5 md:px-8">
-        <div className="max-w-7xl mx-auto flex flex-col-reverse lg:flex-row items-center gap-14">
-          {/* LEFT */}
-          <div className="flex-1 text-center lg:text-left">
-            <h1 className="font-black leading-tight text-5xl md:text-6xl lg:text-7xl">
-              Học từ vựng có lộ trình,
-              <br />
-              <span className="bg-gradient-to-r from-blue-600 to-cyan-400 bg-clip-text text-transparent">
-                nhớ lâu và quay lại đều hơn
-              </span>
-            </h1>
-
-            <p className="mt-8 text-lg md:text-xl text-gray-600 leading-relaxed max-w-2xl mx-auto lg:mx-0">
-              Học flashcard, luyện quiz, ôn bằng SRS và theo dõi tiến độ học tập
-              trong một nơi duy nhất.
-            </p>
-
-            <div className="mt-10 flex flex-col sm:flex-row items-center justify-center lg:justify-start gap-4">
-              <Link
-                href="/login"
-                className="w-full sm:w-auto text-center bg-blue-600 hover:bg-blue-700 transition text-white font-bold px-8 py-4 rounded-2xl shadow-xl shadow-blue-200"
-              >
-                Bắt đầu học miễn phí →
-              </Link>
-
-              <button className="w-full sm:w-auto bg-white hover:bg-gray-100 transition border border-gray-200 font-bold px-8 py-4 rounded-2xl">
-                Xem demo
-              </button>
+      <section className="px-5 pb-20 pt-10 md:px-8 md:pt-14">
+        <div className="mx-auto grid max-w-7xl items-center gap-12 lg:grid-cols-[1fr_1fr] xl:grid-cols-[0.96fr_1.04fr]">
+          <div>
+            <div className="inline-flex items-center gap-2 rounded-full border border-[#d8c4ad] bg-[#fff9f2] px-4 py-2 text-sm font-semibold text-[#94623a] shadow-sm">
+              <Sparkles className="h-4 w-4" />
+              Từ vựng, SRS, AI và nhiều hơn nữa trong một ứng dụng duy nhất
             </div>
 
-            {/* STATS */}
-            <div className="mt-14 grid grid-cols-1 sm:grid-cols-3 gap-4">
-              <div className="bg-white rounded-3xl p-6 shadow-sm border border-gray-100">
-                <h3 className="text-3xl font-black text-blue-600">100K+</h3>
-                <p className="text-gray-500 mt-2">lượt học mỗi tháng</p>
-              </div>
+            <h1 className="mt-6 max-w-4xl text-5xl font-black leading-[0.95] tracking-[-0.04em] md:text-7xl">
+              Học ít lần hơn,
+              <span className="block text-[#c46a2f]">nhớ lâu hơn.</span>
+            </h1>
 
-              <div className="bg-white rounded-3xl p-6 shadow-sm border border-gray-100">
-                <h3 className="text-3xl font-black text-cyan-500">6 mode</h3>
-                <p className="text-gray-500 mt-2">flashcard và game học</p>
-              </div>
+            <p className="mt-6 max-w-2xl text-lg leading-8 text-[#5d5148] md:text-xl">
+              NSVD Vocab biến việc học từ vựng thành một lộ trình rõ ràng: tạo bộ từ thông minh,
+              học bằng nhiều chế độ, được nhắc ôn đúng lúc và nhìn thấy tiến độ mỗi ngày.
+            </p>
 
-              <div className="bg-white rounded-3xl p-6 shadow-sm border border-gray-100">
-                <h3 className="text-3xl font-black text-violet-500">SRS</h3>
-                <p className="text-gray-500 mt-2">ôn tập thông minh</p>
-              </div>
+            <div className="mt-9 flex flex-col gap-4 sm:flex-row">
+              <Link
+                href="/login"
+                className="inline-flex items-center justify-center gap-2 rounded-full bg-[#d96d32] px-7 py-4 text-base font-bold text-white shadow-[0_18px_40px_rgba(217,109,50,0.28)] transition hover:bg-[#c25f29]"
+              >
+                Vào học ngay
+                <ArrowRight className="h-4 w-4" />
+              </Link>
+              <a
+                href="#preview"
+                className="inline-flex items-center justify-center gap-2 rounded-full border border-[#d5c2ae] bg-[#fffaf4] px-7 py-4 text-base font-bold text-[#3d3026] transition hover:border-[#c46a2f] hover:text-[#c46a2f]"
+              >
+                Xem giao diện
+              </a>
+            </div>
+
+            <div className="mt-10 flex flex-wrap gap-3">
+              {["Flashcard", "Quiz", "Write mode", "SRS reminders"].map((item) => (
+                <span
+                  key={item}
+                  className="rounded-full border border-[#dcc8b4] bg-[#fff8f0] px-4 py-2 text-sm font-semibold text-[#6f5d4d]"
+                >
+                  {item}
+                </span>
+              ))}
+            </div>
+
+            <div className="mt-12 grid gap-4 sm:grid-cols-3">
+              {stats.map((stat) => (
+                <div
+                  key={stat.label}
+                  className="rounded-[2rem] border border-[#e2d2bf] bg-[#fffaf3] p-5 shadow-[0_16px_30px_rgba(115,84,53,0.06)]"
+                >
+                  <p className="text-3xl font-black text-[#1f1a17]">{stat.value}</p>
+                  <p className="mt-2 text-sm leading-6 text-[#6a5a4c]">{stat.label}</p>
+                </div>
+              ))}
             </div>
           </div>
 
-          {/* RIGHT */}
-          <div className="flex-1 w-full">
-            <div className="relative w-full max-w-2xl mx-auto">
-              {/* MAIN CARD */}
-              <div className="bg-white rounded-[40px] p-5 md:p-8 shadow-2xl border border-gray-100">
-                {/* TOP */}
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="bg-[#f5f9ff] rounded-3xl p-5">
-                    <p className="text-gray-500 text-sm">Hôm nay</p>
-                    <h2 className="text-5xl font-black mt-2">77</h2>
+          <div id="preview" className="relative lg:px-8 lg:py-6">
+            <div className="absolute left-0 top-20 z-20 hidden rounded-[1.75rem] border border-[#ead9c5] bg-[#fff8ef] px-4 py-3 shadow-xl lg:block">
+              <p className="text-xs font-bold uppercase tracking-[0.24em] text-[#9b6c47]">
+                Hôm nay
+              </p>
+              <p className="mt-2 text-3xl font-black">32 từ cần ôn tập</p>
+            </div>
+
+            <div className="relative rounded-[2.5rem] border border-[#ead7c2] bg-[#fffaf4] p-4 shadow-[0_28px_80px_rgba(65,44,25,0.14)] md:p-6 xl:p-7">
+              <div className="absolute inset-x-8 top-0 h-24 rounded-b-[2rem] bg-[linear-gradient(180deg,rgba(255,236,210,0.8),rgba(255,236,210,0))]" />
+
+              <div className="rounded-[2rem] bg-[#231b18] p-5 text-[#f8f1e8]">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-xs uppercase tracking-[0.28em] text-[#d8b89a]">
+                      Study session
+                    </p>
+                    <h2 className="mt-2 text-2xl font-black">Roadmap từ vựng IELTS</h2>
+                  </div>
+                  <div className="rounded-full bg-white/10 px-4 py-2 text-sm font-semibold">
+                    Streak 17
+                  </div>
+                </div>
+
+                <div className="mt-5 grid gap-4 md:grid-cols-[1.1fr_0.9fr]">
+                  <div className="rounded-[1.75rem] bg-[#fff8ef] p-6 text-[#221a16]">
+                    <p className="text-sm font-semibold text-[#95663e]">Flashcard hiện tại</p>
+                    <p className="mt-4 text-4xl font-black tracking-[-0.04em]">meticulous</p>
+                    <p className="mt-3 text-lg text-[#5e5146]">cẩn thận, tỉ mỉ trong từng chi tiết</p>
+
+                    <div className="mt-6 grid grid-cols-3 gap-3">
+                      {["AI hint", "Quiz", "Speak"].map((action) => (
+                        <div
+                          key={action}
+                          className="rounded-2xl bg-[#f4eadf] px-3 py-4 text-center text-sm font-bold text-[#4d3c31]"
+                        >
+                          {action}
+                        </div>
+                      ))}
+                    </div>
                   </div>
 
-                  <div className="bg-orange-400 text-white rounded-3xl p-5">
-                    <p className="text-orange-100 text-sm">Chuỗi học</p>
-                    <h2 className="text-5xl font-black mt-2">17</h2>
+                  <div className="space-y-4">
+                    <div className="rounded-[1.75rem] bg-[#3b2d25] p-5">
+                      <p className="text-sm text-[#dcbca1]">Độ chính xác tuần này</p>
+                      <p className="mt-3 text-4xl font-black">92%</p>
+                      <div className="mt-4 h-3 rounded-full bg-white/10">
+                        <div className="h-3 w-[92%] rounded-full bg-[#f6c15b]" />
+                      </div>
+                    </div>
+
+                    <div className="rounded-[1.75rem] bg-[#2d221d] p-5">
+                      <p className="text-sm text-[#dcbca1]">Tiến độ hôm nay</p>
+                      <div className="mt-4 space-y-3">
+                        {[
+                          ["Học mới", "18/20"],
+                          ["Ôn tập", "32/40"],
+                          ["Quiz", "14/14"],
+                        ].map(([label, value]) => (
+                          <div
+                            key={label}
+                            className="flex items-center justify-between rounded-2xl bg-white/6 px-4 py-3 text-sm"
+                          >
+                            <span className="text-[#f8efe5]">{label}</span>
+                            <span className="font-bold text-[#f4c66d]">{value}</span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
                   </div>
                 </div>
-
-                {/* FLASHCARD */}
-                <div className="mt-5 bg-gray-50 rounded-3xl p-8 border border-gray-100">
-                  <p className="text-gray-400 text-sm">Flashcard</p>
-
-                  <h1 className="text-4xl md:text-5xl font-black mt-4 break-words">
-                    dissemination
-                  </h1>
-
-                  <p className="text-gray-600 mt-4 text-xl">sự lan truyền</p>
-                </div>
-
-                {/* BUTTONS */}
-                <div className="grid grid-cols-3 gap-3 mt-5">
-                  <button className="bg-[#f5f9ff] hover:bg-blue-100 transition rounded-2xl p-4 font-bold">
-                    AI
-                  </button>
-
-                  <button className="bg-[#f5f9ff] hover:bg-blue-100 transition rounded-2xl p-4 font-bold">
-                    Quiz
-                  </button>
-
-                  <button className="bg-[#f5f9ff] hover:bg-blue-100 transition rounded-2xl p-4 font-bold">
-                    SRS
-                  </button>
-                </div>
               </div>
 
-              {/* FLOATING CARDS */}
-              <div className="hidden md:flex absolute -top-6 -left-6 bg-white rounded-3xl px-6 py-4 shadow-xl items-center gap-3 border border-gray-100">
-                <div className="w-10 h-10 rounded-full bg-green-100" />
-
-                <div>
-                  <h3 className="font-black text-xl">100.000+</h3>
-                  <p className="text-gray-500 text-sm">người học</p>
-                </div>
+              <div className="mt-5 grid gap-4 md:grid-cols-3">
+                {[
+                  ["Tập trung", "Bộ nhắc nhở theo mức độ quên của bạn."],
+                  ["Linh hoạt", "Chuyển chế độ học mà không mất mạch ôn tập."],
+                  ["Dễ theo dõi", "Biết ngay phần nào đang yếu để học tiếp."],
+                ].map(([title, desc]) => (
+                  <div
+                    key={title}
+                    className="rounded-[1.75rem] border border-[#ebdac7] bg-[#fffdf9] p-5"
+                  >
+                    <p className="text-lg font-black">{title}</p>
+                    <p className="mt-2 text-sm leading-6 text-[#67584b]">{desc}</p>
+                  </div>
+                ))}
               </div>
+            </div>
 
-              <div className="hidden md:block absolute -bottom-6 -right-6 bg-white rounded-3xl px-6 py-4 shadow-xl border border-gray-100">
-                <h3 className="font-black text-xl">SRS + roadmap</h3>
-                <p className="text-gray-500">không học rời rạc</p>
-              </div>
+            <div className="absolute bottom-0 right-4 z-20 hidden translate-y-1/2 rounded-[1.75rem] border border-[#ead9c5] bg-[#fff9f2] px-5 py-4 shadow-xl md:block">
+              <p className="text-xs font-bold uppercase tracking-[0.24em] text-[#9b6c47]">
+                Nhớ đều hơn
+              </p>
+              <p className="mt-2 flex items-center gap-2 text-lg font-black">
+                <Brain className="h-5 w-5 text-[#d96d32]" />
+                Ôn đúng lúc, không học dồn dập
+              </p>
             </div>
           </div>
         </div>
       </section>
 
-      {/* FEATURES */}
-      <section
-        id="features"
-        className="max-w-7xl mx-auto px-5 md:px-8 py-20"
-      >
-        <div className="text-center">
-          <h2 className="text-4xl md:text-5xl font-black">
-            Mọi thứ cho việc học từ vựng
-          </h2>
-
-          <p className="text-gray-500 mt-5 text-lg">
-            Không cần dùng 5 app khác nhau nữa.
+      <section id="features" className="mx-auto max-w-7xl px-5 py-20 md:px-8">
+        <div className="max-w-3xl">
+          <p className="text-sm font-bold uppercase tracking-[0.28em] text-[#a17348]">
+            Tính năng nổi bật
           </p>
+          <h2 className="mt-4 text-4xl font-black tracking-[-0.04em] md:text-5xl">
+            Không chỉ đẹp mắt, mà còn giúp bạn học tốt hơn mỗi ngày.
+          </h2>
         </div>
 
-        <div className="mt-16 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {[
-            "Flashcard thông minh",
-            "SRS nhắc ôn",
-            "Quiz luyện tập",
-            "AI tạo ví dụ",
-            "Theo dõi tiến độ",
-            "Roadmap học tập",
-          ].map((item) => (
-            <div
-              key={item}
-              className="bg-white p-8 rounded-[32px] shadow-sm border border-gray-100 hover:-translate-y-1 transition"
+        <div className="mt-12 grid gap-6 lg:grid-cols-3">
+          {features.map(({ title, description, icon: Icon }) => (
+            <article
+              key={title}
+              className="rounded-[2rem] border border-[#e4d4c1] bg-[#fffaf4] p-7 shadow-[0_18px_40px_rgba(84,58,33,0.07)]"
             >
-              <div className="w-14 h-14 rounded-2xl bg-[#f5f9ff] mb-6" />
+              <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-[#1f1a17] text-[#f8f1e8]">
+                <Icon className="h-6 w-6" />
+              </div>
+              <h3 className="mt-6 text-2xl font-black">{title}</h3>
+              <p className="mt-4 text-base leading-7 text-[#66584c]">{description}</p>
+            </article>
+          ))}
+        </div>
+      </section>
 
-              <h3 className="text-2xl font-black">{item}</h3>
+      <section
+        id="process"
+        className="border-y border-[#e4d6c7] bg-[#f3eadf]/85 px-5 py-20 md:px-8"
+      >
+        <div className="mx-auto grid max-w-7xl gap-10 lg:grid-cols-[0.95fr_1.05fr]">
+          <div>
+            <p className="text-sm font-bold uppercase tracking-[0.28em] text-[#a17348]">
+              Cách học
+            </p>
+            <h2 className="mt-4 text-4xl font-black tracking-[-0.04em] md:text-5xl">
+              Một quy trình đơn giản, để bạn duy trì lâu dài.
+            </h2>
+            <p className="mt-5 max-w-xl text-lg leading-8 text-[#63564a]">
+              Trang chủ được viết lại để người mới vào là hiểu ngay sản phẩm này giúp học từ vựng như thế nào.
+            </p>
+          </div>
 
-              <p className="text-gray-500 mt-4 leading-relaxed">
-                Tối ưu cho việc học dài hạn và ghi nhớ hiệu quả.
+          <div className="space-y-4">
+            {steps.map((step, index) => (
+              <div
+                key={step}
+                className="flex gap-4 rounded-[2rem] border border-[#e2d3c0] bg-[#fffaf3] p-5"
+              >
+                <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-[#d96d32] text-lg font-black text-white">
+                  {index + 1}
+                </div>
+                <div>
+                  <p className="text-lg font-bold text-[#241d19]">{step}</p>
+                  <div className="mt-3 flex items-center gap-2 text-sm font-semibold text-[#86654a]">
+                    <Check className="h-4 w-4" />
+                    Tập trung vào trí nhớ dài hạn thay vì học thật nhanh rồi quên.
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      <section className="mx-auto max-w-7xl px-5 py-20 md:px-8">
+        <div className="rounded-[2.5rem] bg-[#1f1a17] px-6 py-10 text-[#f8f1e8] shadow-[0_30px_80px_rgba(31,26,23,0.22)] md:px-10">
+          <div className="flex flex-col gap-8 md:flex-row md:items-end md:justify-between">
+            <div className="max-w-2xl">
+              <p className="text-sm font-bold uppercase tracking-[0.28em] text-[#e0b88f]">
+                Sẵn sàng vào học?
+              </p>
+              <h2 className="mt-4 text-4xl font-black tracking-[-0.04em] md:text-5xl">
+                Tạo một bộ từ vựng và bắt đầu ngay trong vài phút.
+              </h2>
+              <p className="mt-4 text-lg leading-8 text-[#d8c8ba]">
+                Mục tiêu của landing page này là gọn, sắc nét và tạo cảm giác như một sản phẩm thật, không còn kiểu template mặc định.
               </p>
             </div>
-          ))}
+
+            <div className="flex flex-col gap-3 sm:flex-row">
+              <Link
+                href="/login"
+                className="inline-flex items-center justify-center gap-2 rounded-full bg-[#f5c86f] px-7 py-4 text-base font-black text-[#251d19] transition hover:bg-[#efbb55]"
+              >
+                Bắt đầu miễn phí
+                <BookOpen className="h-4 w-4" />
+              </Link>
+              <Link
+                href="/login"
+                className="inline-flex items-center justify-center gap-2 rounded-full border border-white/15 bg-white/5 px-7 py-4 text-base font-bold text-[#f8f1e8] transition hover:bg-white/10"
+              >
+                Đăng nhập
+              </Link>
+            </div>
+          </div>
         </div>
       </section>
     </main>
