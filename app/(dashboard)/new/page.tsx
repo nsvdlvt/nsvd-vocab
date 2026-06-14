@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useState } from "react"
+import { startTransition, useEffect, useState } from "react"
 import { supabase } from "@/lib/supabase"
 import { useRouter } from "next/navigation"
 
@@ -21,6 +21,15 @@ type DictionaryEntry = {
   phonetics?: DictionaryPhonetic[]
 }
 
+type ClonePayload = {
+  title?: string
+  description?: string
+  tag?: string
+  words?: Partial<WordType>[]
+}
+
+const DEFAULT_SET_ICON = "📘"
+
 export default function NewPage() {
   const router = useRouter()
   const [title, setTitle] = useState("")
@@ -30,8 +39,6 @@ export default function NewPage() {
     useState("IELTS")
 const [showTags, setShowTags] =
     useState(false)
-  const [icon, setIcon] =
-    useState("📘")
   const [isPublic, setIsPublic] =
     useState(false)
   const [saving, setSaving] = useState(false)
@@ -86,39 +93,37 @@ const [showTags, setShowTags] =
     if (!cloneRaw) return
 
     try {
-      const cloneData = JSON.parse(cloneRaw)
+      const cloneData = JSON.parse(cloneRaw) as ClonePayload
 
-      if (cloneData.title) {
-        setTitle(cloneData.title)
-      }
+      startTransition(() => {
+        if (cloneData.title) {
+          setTitle(cloneData.title)
+        }
 
-      if (cloneData.description) {
-        setDescription(cloneData.description)
-      }
+        if (cloneData.description) {
+          setDescription(cloneData.description)
+        }
 
-      if (cloneData.tag) {
-        setTag(cloneData.tag)
-      }
+        if (cloneData.tag) {
+          setTag(cloneData.tag)
+        }
 
-      if (cloneData.icon) {
-        setIcon(cloneData.icon)
-      }
-
-      if (
-        Array.isArray(cloneData.words) &&
-        cloneData.words.length
-      ) {
-        setWords(
-          cloneData.words.map((word: any) => ({
-            word: word.word || "",
-            meaning: word.meaning || "",
-            ipa: word.ipa || "",
-            type: word.type || "",
-            example: word.example || "",
-            synonyms: word.synonyms || "",
-          }))
-        )
-      }
+        if (
+          Array.isArray(cloneData.words) &&
+          cloneData.words.length
+        ) {
+          setWords(
+            cloneData.words.map((word) => ({
+              word: word.word || "",
+              meaning: word.meaning || "",
+              ipa: word.ipa || "",
+              type: word.type || "",
+              example: word.example || "",
+              synonyms: word.synonyms || "",
+            }))
+          )
+        }
+      })
     } catch (error) {
       console.log(error)
     } finally {
@@ -308,7 +313,7 @@ const [showTags, setShowTags] =
           title,
           description,
           tag,
-          icon,
+          icon: DEFAULT_SET_ICON,
           is_public: isPublic,
           user_id: user?.id,
           author_name:
@@ -796,7 +801,7 @@ const [showTags, setShowTags] =
       </div>
 
 
-      {/* TITLE */}
+      {/* SET INFO */}
       <div className="bg-white rounded-[40px] p-6 md:p-8 shadow-sm border border-gray-100 mb-6">
         <p className="font-bold mb-4 text-lg">
           Tên bộ từ
@@ -823,48 +828,12 @@ const [showTags, setShowTags] =
           placeholder="Thêm mô tả cho bộ từ của bạn..."
           className="w-full min-h-[120px] bg-[#f5f9ff] rounded-2xl p-5 outline-none border border-transparent focus:border-blue-500 resize-none"
         />
-      </div>
-      {/* EXTRA */}
-      <div className="grid md:grid-cols-2 gap-6 mb-6">
 
-        {/* ICON */}
-        <div className="bg-white rounded-[40px] p-6 shadow-sm border border-gray-100">
+        <p className="font-bold mb-4 mt-6 text-lg">
+          Tag
+        </p>
 
-          <p className="font-bold mb-4 text-lg">
-            Icon bộ từ
-          </p>
-          <div className="flex items-center gap-4 mb-5">
-
-            <div className="w-20 h-20 rounded-3xl bg-[#f5f9ff] flex items-center justify-center text-3xl md:text-5xl border border-gray-200">
-              {icon}
-            </div>
-
-            <div className="flex-1">
-              <p className="text-sm text-gray-500 mb-2">
-                Tự nhập emoji/icon
-              </p>
-
-              <input
-                value={icon}
-                onChange={(e) =>
-                  setIcon(e.target.value)
-                }
-                placeholder="📘"
-                maxLength={2}
-                className="w-full bg-[#f5f9ff] rounded-2xl p-4 outline-none"
-              />
-            </div>
-          </div>
-        </div>
-
-        {/* TAG */}
-        <div className="bg-white rounded-[40px] p-6 shadow-sm border border-gray-100">
-
-          <p className="font-bold mb-4 text-lg">
-            Tag
-          </p>
-
-          <div className="relative">
+        <div className="relative">
 
     {/* BUTTON */}
     <button
@@ -940,7 +909,6 @@ const [showTags, setShowTags] =
     )}
 
 </div>
-        </div>
       </div>
       {/* WORDS */}
       <div className="space-y-6">

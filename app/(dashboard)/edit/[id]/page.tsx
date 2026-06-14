@@ -17,6 +17,8 @@ type WordType = {
     synonyms: string
 }
 
+const DEFAULT_SET_ICON = "📘"
+
 export default function EditPage({
     params,
 }: {
@@ -27,12 +29,11 @@ export default function EditPage({
     const router = useRouter()
     const { id } = use(params)
     const [title, setTitle] = useState("")
+    const [description, setDescription] = useState("")
     const [tag, setTag] =
         useState("IELTS")
 const [showTags, setShowTags] =
     useState(false)
-    const [icon, setIcon] =
-        useState("📘")
     const [isPublic, setIsPublic] =
         useState(false)
     const [saving, setSaving] = useState(false)
@@ -80,8 +81,8 @@ const [showTags, setShowTags] =
     const currentData = JSON.stringify({
         isPublic,
         title,
+        description,
         tag,
-        icon,
         words,
     })
 
@@ -89,67 +90,66 @@ const [showTags, setShowTags] =
         originalData !== null &&
         currentData !== originalData
     useEffect(() => {
-        fetchSet()
+        let cancelled = false
+
+        const fetchSet = async () => {
+            // SET INFO
+            const { data: setData } =
+                await supabase
+                    .from("vocab_sets")
+                    .select("*")
+                    .eq("id", id)
+                    .single()
+
+            if (cancelled) return
+
+            if (setData) {
+                setTitle(setData.title)
+                setDescription(setData.description || "")
+                setTag(setData.tag || "")
+                setIsPublic(
+                    setData.is_public || false
+                )
+            }
+
+            // WORDS
+            const { data: wordsData } =
+                await supabase
+                    .from("vocab_words")
+                    .select("*")
+                    .eq("set_id", id)
+
+            if (cancelled || !wordsData) return
+
+            const formattedWords = wordsData.map((word) => ({
+                word: word.word,
+                meaning: word.meaning,
+                ipa: word.ipa,
+                type: word.word_type,
+                example: word.example,
+                synonyms: word.synonyms,
+            }))
+
+            setWords(formattedWords)
+            setOriginalData(
+                JSON.stringify({
+                    isPublic:
+                        setData?.is_public || false,
+                    title: setData?.title || "",
+                    description:
+                        setData?.description || "",
+                    tag: setData?.tag || "",
+                    words: formattedWords,
+                })
+            )
+        }
+
+        void fetchSet()
+
+        return () => {
+            cancelled = true
+        }
     }, [id])
-    const fetchSet = async () => {
-
-        // SET INFO
-        const { data: setData } =
-            await supabase
-                .from("vocab_sets")
-                .select("*")
-                .eq("id", id)
-                .single()
-
-        if (setData) {
-            setTitle(setData.title)
-            setTag(setData.tag || "")
-            setIcon(setData.icon || "📘")
-            setIsPublic(
-                setData.is_public || false
-            )
-        }
-
-        // WORDS
-        const { data: wordsData } =
-            await supabase
-                .from("vocab_words")
-                .select("*")
-                .eq("set_id", id)
-
-        if (wordsData) {
-            setWords(
-
-                wordsData.map((word) => ({
-                    word: word.word,
-                    meaning: word.meaning,
-                    ipa: word.ipa,
-                    type: word.word_type,
-                    example: word.example,
-                    synonyms: word.synonyms,
-                }))
-            )
-            const snapshot = JSON.stringify({
-                isPublic:
-                    setData?.is_public || false,
-                title: setData?.title || "",
-                tag: setData?.tag || "",
-                icon: setData?.icon || "📘",
-
-                words:
-                    wordsData?.map((word) => ({
-                        word: word.word,
-                        meaning: word.meaning,
-                        ipa: word.ipa,
-                        type: word.word_type,
-                        example: word.example,
-                        synonyms: word.synonyms,
-                    })) || [],
-            })
-
-            setOriginalData(snapshot)
-        }
-    }
     const updateWord = (
         index: number,
         field: keyof WordType,
@@ -203,12 +203,6 @@ const [showTags, setShowTags] =
 
         try {
             // lấy session
-            const {
-                data: { session },
-            } = await supabase.auth.getSession()
-
-            const user = session?.user
-
             // lọc từ hợp lệ
             // check row lỗi
             // tìm các row lỗi
@@ -264,8 +258,9 @@ const [showTags, setShowTags] =
                     .from("vocab_sets")
                     .update({
                         title,
+                        description,
                         tag,
-                        icon,
+                        icon: DEFAULT_SET_ICON,
                         is_public: isPublic,
                         updated_at: new Date(),
                     })
@@ -742,7 +737,7 @@ từ vựng	phiên âm	loại từ	nghĩa tiếng Việt	ví dụ tiếng Anh	sy
             </div>
 
 
-            {/* TITLE */}
+            {/* SET INFO */}
             <div className="bg-white rounded-[40px] p-6 md:p-8 shadow-sm border border-gray-100 mb-6">
                 <p className="font-bold mb-4 text-lg">
                     Tên bộ từ
@@ -756,48 +751,25 @@ từ vựng	phiên âm	loại từ	nghĩa tiếng Việt	ví dụ tiếng Anh	sy
                     placeholder="Ví dụ: IELTS Vocabulary"
                     className="w-full bg-[#f5f9ff] rounded-2xl p-5 outline-none border border-transparent focus:border-blue-500"
                 />
-            </div>
-            {/* EXTRA */}
-            <div className="grid md:grid-cols-2 gap-6 mb-6">
 
-                {/* ICON */}
-                <div className="bg-white rounded-[40px] p-6 shadow-sm border border-gray-100">
+                <p className="font-bold mb-4 mt-6 text-lg">
+                    Mô tả (tùy chọn)
+                </p>
 
-                    <p className="font-bold mb-4 text-lg">
-                        Icon bộ từ
-                    </p>
-                    <div className="flex items-center gap-4 mb-5">
+                <textarea
+                    value={description}
+                    onChange={(e) =>
+                        setDescription(e.target.value)
+                    }
+                    placeholder="Thêm mô tả cho bộ từ của bạn..."
+                    className="w-full min-h-[120px] bg-[#f5f9ff] rounded-2xl p-5 outline-none border border-transparent focus:border-blue-500 resize-none"
+                />
 
-                        <div className="w-20 h-20 rounded-3xl bg-[#f5f9ff] flex items-center justify-center text-5xl border border-gray-200">
-                            {icon}
-                        </div>
+                <p className="font-bold mb-4 mt-6 text-lg">
+                    Tag
+                </p>
 
-                        <div className="flex-1">
-                            <p className="text-sm text-gray-500 mb-2">
-                                Tự nhập emoji/icon
-                            </p>
-
-                            <input
-                                value={icon}
-                                onChange={(e) =>
-                                    setIcon(e.target.value)
-                                }
-                                placeholder="📘"
-                                maxLength={2}
-                                className="w-full bg-[#f5f9ff] rounded-2xl p-4 outline-none"
-                            />
-                        </div>
-                    </div>
-                </div>
-
-                {/* TAG */}
-                <div className="bg-white rounded-[40px] p-6 shadow-sm border border-gray-100">
-
-                    <p className="font-bold mb-4 text-lg">
-                        Tag
-                    </p>
-
-                    <div className="relative">
+                <div className="relative">
 
     {/* BUTTON */}
     <button
@@ -873,7 +845,6 @@ từ vựng	phiên âm	loại từ	nghĩa tiếng Việt	ví dụ tiếng Anh	sy
     )}
 
 </div>
-                </div>
             </div>
             {/* WORDS */}
             <div className="space-y-6">

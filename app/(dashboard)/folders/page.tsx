@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react"
 import { useRouter } from "next/navigation"
-import { Check, Clock3, Search, SlidersHorizontal, User } from "lucide-react"
+import { Check, Clock3, MoreHorizontal, Pencil, Search, SlidersHorizontal, Trash2, User } from "lucide-react"
 import { supabase } from "@/lib/supabase"
 
 type VocabSet = {
@@ -37,6 +37,16 @@ type LearningSession = {
   set_id: string
   updated_at: string
   all_words?: LearningWordProgress[] | null
+}
+
+type ProgressActivityRow = {
+  last_reviewed_at?: string | null
+  updated_at?: string | null
+  vocab_words?: {
+    set_id?: string | null
+  } | {
+    set_id?: string | null
+  }[] | null
 }
 
 type LearningWordProgress = {
@@ -91,6 +101,18 @@ const getLearningStats = (
   }
 }
 
+const first = <T,>(value: T | T[] | null | undefined) =>
+  Array.isArray(value) ? value[0] : value
+
+const latestDate = (...values: (string | null | undefined)[]) => {
+  const latest = values
+    .map((value) => (value ? new Date(value).getTime() : Number.NaN))
+    .filter((value) => !Number.isNaN(value))
+    .sort((a, b) => b - a)[0]
+
+  return latest ? new Date(latest).toISOString() : null
+}
+
 export default function ArchivePage() {
   const router = useRouter()
   const [loading, setLoading] = useState(true)
@@ -99,6 +121,9 @@ export default function ArchivePage() {
   const [sortBy, setSortBy] = useState<SortBy>("az")
   const [filterTag, setFilterTag] = useState("all")
   const [sortOpen, setSortOpen] = useState(false)
+  const [openSetMenuId, setOpenSetMenuId] = useState<string | null>(null)
+  const [pendingDelete, setPendingDelete] = useState<VocabSet | null>(null)
+  const [deleteError, setDeleteError] = useState("")
 
   useEffect(() => {
     const loadSets = async () => {
@@ -154,6 +179,33 @@ export default function ArchivePage() {
         ])
       )
 
+      const { data: progressRows } =
+        setIds.length > 0
+          ? await supabase
+              .from("user_word_progress")
+              .select(`
+                last_reviewed_at,
+                updated_at,
+                vocab_words!inner(set_id)
+              `)
+              .eq("user_id", user.id)
+              .in("vocab_words.set_id", setIds)
+          : { data: [] }
+
+      const latestProgressBySetId = new Map<string, string>()
+      ;((progressRows || []) as unknown as ProgressActivityRow[]).forEach((row) => {
+        const word = first(row.vocab_words)
+        if (!word?.set_id) return
+
+        const nextLatest = latestDate(row.last_reviewed_at, row.updated_at)
+        const currentLatest = latestProgressBySetId.get(word.set_id)
+        const latest = latestDate(currentLatest, nextLatest)
+
+        if (latest) {
+          latestProgressBySetId.set(word.set_id, latest)
+        }
+      })
+
       const formatted = (data || []).map((item: SupabaseVocabSet) => {
         const totalWords = item.vocab_words?.[0]?.count || 0
         const stats = getLearningStats(sessionBySetId.get(item.id), totalWords)
@@ -170,7 +222,10 @@ export default function ArchivePage() {
           learning_words: stats.learning,
           unlearned_words: stats.unlearned,
           author: item.author_name || user.email || "Unknown",
-          last_studied_at: sessionBySetId.get(item.id)?.updated_at || null,
+          last_studied_at: latestDate(
+            sessionBySetId.get(item.id)?.updated_at,
+            latestProgressBySetId.get(item.id)
+          ),
         }
       })
 
@@ -181,8 +236,27 @@ export default function ArchivePage() {
     loadSets()
   }, [])
 
+  const deleteSet = async (setId: string) => {
+    const { error } = await supabase
+      .from("vocab_sets")
+      .delete()
+      .eq("id", setId)
+
+    if (error) {
+      setDeleteError("Không thể xóa bộ từ. Vui lòng thử lại.")
+      return
+    }
+
+    setSets((prev) => prev.filter((set) => set.id !== setId))
+    setPendingDelete(null)
+    setDeleteError("")
+  }
+
   useEffect(() => {
-    const closeMenu = () => setSortOpen(false)
+    const closeMenu = () => {
+      setSortOpen(false)
+      setOpenSetMenuId(null)
+    }
     window.addEventListener("click", closeMenu)
     return () => window.removeEventListener("click", closeMenu)
   }, [])
@@ -329,16 +403,55 @@ export default function ArchivePage() {
           </div>
         ) : (
           filteredSets.map((set) => (
-            <button
+            <article
               key={set.id}
               onClick={() => router.push(`/vocabsets/${set.id}`)}
-              className="dashboard-card text-left transition hover:-translate-y-1"
+              className="dashboard-card relative cursor-pointer text-left transition hover:-translate-y-1"
             >
-              <div className="flex items-start justify-between gap-4">
-                <div className="flex items-start gap-4">
-                  <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-[#231b18] text-2xl text-[#f8f1e8]">
-                    {set.icon || "A"}
+              <div className="absolute right-5 top-5 z-20">
+                <button
+                  type="button"
+                  title="Mở menu"
+                  onClick={(event) => {
+                    event.stopPropagation()
+                    setDeleteError("")
+                    setOpenSetMenuId((prev) => (prev === set.id ? null : set.id))
+                  }}
+                  className="flex h-10 w-10 items-center justify-center rounded-2xl border border-[#e2d2bf] bg-[#fffaf3] text-[#3d3026] transition hover:border-[#c96d35] hover:text-[#c96d35]"
+                >
+                  <MoreHorizontal className="h-5 w-5" />
+                </button>
+
+                {openSetMenuId === set.id ? (
+                  <div
+                    onClick={(event) => event.stopPropagation()}
+                    className="absolute right-0 mt-2 w-40 rounded-2xl border border-[#e2d2bf] bg-[#fffaf3] p-2 shadow-[0_18px_40px_rgba(84,58,33,0.14)]"
+                  >
+                    <button
+                      type="button"
+                      onClick={() => router.push(`/edit/${set.id}`)}
+                      className="flex w-full items-center gap-2 rounded-xl px-3 py-2 text-left text-sm font-bold text-[#3d3026] transition hover:bg-[#f7efe5]"
+                    >
+                      <Pencil className="h-4 w-4" />
+                      Sửa
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setOpenSetMenuId(null)
+                        setDeleteError("")
+                        setPendingDelete(set)
+                      }}
+                      className="flex w-full items-center gap-2 rounded-xl px-3 py-2 text-left text-sm font-bold text-red-600 transition hover:bg-red-50"
+                    >
+                      <Trash2 className="h-4 w-4" />
+                      Xóa
+                    </button>
                   </div>
+                ) : null}
+              </div>
+              <div className="flex items-start justify-between gap-4">
+                <div className="pr-14">
                   <div>
                     <h2 className="text-2xl font-black text-[#241c17]">{set.title}</h2>
                     <p className="mt-2 line-clamp-2 text-sm leading-6 text-[#66584b]">
@@ -347,7 +460,7 @@ export default function ArchivePage() {
                   </div>
                 </div>
 
-                <div className="rounded-full bg-[#f1e4d6] px-3 py-2 text-xs font-bold uppercase tracking-[0.18em] text-[#8d6542]">
+                <div className="mr-14 rounded-full bg-[#f1e4d6] px-3 py-2 text-xs font-bold uppercase tracking-[0.18em] text-[#8d6542]">
                   {set.tag || "Tổng hợp"}
                 </div>
               </div>
@@ -378,10 +491,55 @@ export default function ArchivePage() {
                 </div>
                 <div className="font-bold text-[#241c17]">{set.total_words || 0} từ</div>
               </div>
-            </button>
+            </article>
           ))
         )}
       </div>
+
+      {pendingDelete ? (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-[#1f1a17]/45 px-4 backdrop-blur-sm">
+          <div className="w-full max-w-md rounded-[2rem] border border-[#ead8c4] bg-[#fffaf3] p-6 shadow-[0_28px_80px_rgba(31,26,23,0.22)]">
+            <div className="flex items-start gap-4">
+              <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-red-50 text-red-600">
+                <Trash2 className="h-5 w-5" />
+              </div>
+              <div>
+                <h2 className="text-2xl font-black text-[#241c17]">
+                  Xóa bộ từ này?
+                </h2>
+                <p className="mt-2 leading-7 text-[#66584b]">
+                  Bộ từ “{pendingDelete.title}” sẽ bị xóa khỏi kho của bạn. Hành động này không thể hoàn tác.
+                </p>
+                {deleteError ? (
+                  <p className="mt-3 rounded-2xl bg-red-50 px-4 py-3 text-sm font-bold text-red-700">
+                    {deleteError}
+                  </p>
+                ) : null}
+              </div>
+            </div>
+
+            <div className="mt-7 grid gap-3 sm:grid-cols-2">
+              <button
+                type="button"
+                onClick={() => {
+                  setPendingDelete(null)
+                  setDeleteError("")
+                }}
+                className="h-12 rounded-2xl border border-[#e2d2bf] bg-white font-bold text-[#3d3026] transition hover:border-[#c96d35]"
+              >
+                Hủy
+              </button>
+              <button
+                type="button"
+                onClick={() => void deleteSet(pendingDelete.id)}
+                className="h-12 rounded-2xl bg-red-600 font-bold text-white transition hover:bg-red-700"
+              >
+                Xóa bộ từ
+              </button>
+            </div>
+          </div>
+        </div>
+      ) : null}
     </section>
   )
 }

@@ -71,6 +71,20 @@ type ReviewForecastPoint = {
   isToday: boolean
 }
 
+type LastStudyProgressRow = {
+  last_reviewed_at?: string | null
+  updated_at?: string | null
+}
+
+const latestDate = (...values: (string | null | undefined)[]) => {
+  const latest = values
+    .map((value) => (value ? new Date(value).getTime() : Number.NaN))
+    .filter((value) => !Number.isNaN(value))
+    .sort((a, b) => b - a)[0]
+
+  return latest ? new Date(latest).toISOString() : null
+}
+
 const getRoleBadgeClass = (role: Role) => {
   if (role === "ADMIN") return "bg-[#7e2a26] text-white"
   if (role === "PREMIUM") return "bg-[#f2c96d] text-[#2d211a]"
@@ -240,7 +254,23 @@ export default function HomePage() {
         const sessionList = (sessions || []) as DashboardSession[]
         const latestSession = sessionList[0]
 
-        setLastStudyAt(latestSession?.updated_at || null)
+        const { data: progressActivityRows } = await supabase
+          .from("user_word_progress")
+          .select("last_reviewed_at, updated_at")
+          .eq("user_id", user.id)
+          .not("last_reviewed_at", "is", null)
+          .order("last_reviewed_at", { ascending: false })
+          .limit(1)
+
+        const latestProgress = (progressActivityRows || []) as LastStudyProgressRow[]
+
+        setLastStudyAt(
+          latestDate(
+            latestSession?.updated_at,
+            latestProgress[0]?.last_reviewed_at,
+            latestProgress[0]?.updated_at
+          )
+        )
 
         let learning = 0
 
