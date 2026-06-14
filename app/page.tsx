@@ -372,7 +372,7 @@ export default function LandingPage() {
                 Tạo một bộ từ vựng và bắt đầu ngay trong vài phút.
               </h2>
               <p className="mt-4 text-lg leading-8 text-[#d8c8ba]">
-                Mục tiêu của landing page này là gọn, sắc nét và tạo cảm giác như một sản phẩm thật, không còn kiểu template mặc định.
+                Cùng nhau học và thành thạo tất cả các từ vựng và cùng nhau chinh phục Tiếng Anh!
               </p>
             </div>
 

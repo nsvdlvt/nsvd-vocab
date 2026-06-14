@@ -15,6 +15,7 @@ import {
   Sparkles,
   Target,
 } from "lucide-react"
+import { GeminiAssistant } from "@/components/dashboard/gemini-assistant"
 import { supabase } from "@/lib/supabase"
 import { getEffectiveReviewDate, startOfDay } from "@/lib/review-due"
 import { MASTERED_LEVEL } from "@/lib/spaced-repetition"
@@ -552,6 +553,8 @@ export default function HomePage() {
         </div>
 
         <div className="space-y-6">
+          <GeminiAssistant />
+
           <article className="dashboard-card">
             <p className="dashboard-card-label">Thao tác nhanh</p>
             <h2 className="mt-2 text-3xl font-black tracking-[-0.04em] text-[#241c17]">
