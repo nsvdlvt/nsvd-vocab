@@ -9,6 +9,7 @@ import {
   FolderPlus,
   Globe,
   Home,
+  Layers3,
   Menu,
   PlusSquare,
   Settings,
@@ -98,6 +99,7 @@ export default function DashboardLayout({
     { title: "Home", icon: Home, path: "/home" },
     { title: "Thêm từ vựng", icon: PlusSquare, path: "/new" },
     { title: "Kho lưu trữ", icon: Folder, path: "/folders" },
+    { title: "Nhóm từ vựng", icon: Layers3, path: "/groups" },
     { title: "Community", icon: Globe, path: "/community" },
     { title: "Tài liệu", icon: FolderPlus, path: "/documents" },
     { title: "Test", icon: ClipboardCheck, path: "/test" },
@@ -132,7 +134,7 @@ export default function DashboardLayout({
 
               <div>
                 <h1 className="text-2xl font-black text-[#241c17]">NSVD Vocab</h1>
-                <p className="text-sm text-[#7a6859]">Study dashboard</p>
+                <p className="text-sm text-[#7a6859]">Learn smart</p>
               </div>
             </div>
 

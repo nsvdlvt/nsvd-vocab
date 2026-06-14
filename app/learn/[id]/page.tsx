@@ -254,6 +254,8 @@ export default function LearnPage({
     const [optionSeed, setOptionSeed] = useState(0)
 
     const autoAdvanceTimeoutRef = useRef<number | null>(null)
+    const currentOptionsKeyRef = useRef<string | null>(null)
+    const lastAutoPlayedKeyRef = useRef<string | null>(null)
 
     const masteredWords = allWords.filter(
         (word) => word.memoryStrength >= MAX_MEMORY_STRENGTH
@@ -275,6 +277,11 @@ export default function LearnPage({
         currentWord?.questionType === "reverse"
             ? currentWord.word
             : currentWord?.meaning || ""
+    const currentOptionsKey = currentWord
+        ? `${currentWord.id}:${currentWord.questionType}:${optionSeed}`
+        : null
+    const currentAnswerKey =
+        currentOptionsKey && showAnswer ? `${currentOptionsKey}:answer` : null
 
     const minimumQuestionTarget = Math.max(
         totalWords * MAX_MEMORY_STRENGTH,
@@ -671,16 +678,36 @@ export default function LearnPage({
     ])
 
     useEffect(() => {
-        if (showAnswer && autoPlayAudio && currentWord) {
-            playAudio()
-        }
-    }, [showAnswer, autoPlayAudio, currentWord])
-
-    useEffect(() => {
-        if (loading || !currentWord || showAnswer) {
+        if (!showAnswer || !autoPlayAudio || !currentWord || !currentAnswerKey) {
             return
         }
 
+        if (lastAutoPlayedKeyRef.current === currentAnswerKey) {
+            return
+        }
+
+        lastAutoPlayedKeyRef.current = currentAnswerKey
+        playAudio()
+    }, [showAnswer, autoPlayAudio, currentWord, currentAnswerKey])
+
+    useEffect(() => {
+        if (loading || !currentWord || showAnswer || !currentOptionsKey) {
+            return
+        }
+
+        if (
+            currentOptionsKeyRef.current === currentOptionsKey &&
+            options.includes(correctAnswer)
+        ) {
+            return
+        }
+
+        if (options.length > 0 && options.includes(correctAnswer)) {
+            currentOptionsKeyRef.current = currentOptionsKey
+            return
+        }
+
+        currentOptionsKeyRef.current = currentOptionsKey
         const timeout = window.setTimeout(() => {
             setOptions(buildOptionsForWord(currentWord, allWords, optionSeed))
         }, 0)
@@ -688,10 +715,13 @@ export default function LearnPage({
         return () => window.clearTimeout(timeout)
     }, [
         currentWord,
+        currentOptionsKey,
+        correctAnswer,
         optionSeed,
         loading,
         showAnswer,
         allWords,
+        options,
     ])
 
     const updateSpacedRepetition = async (
@@ -765,6 +795,8 @@ export default function LearnPage({
         setQueue(catchUpQueue)
         setSectionIndex(totalSections)
         setQuestionIndexInSection(0)
+        lastAutoPlayedKeyRef.current = null
+        setOptions([])
         setOptionSeed((prev) => prev + 1)
         setSummaryVisible(false)
         setSelectedAnswer(null)
@@ -817,6 +849,8 @@ export default function LearnPage({
         })
 
         setQuestionsAnswered(nextQuestionsAnswered)
+        lastAutoPlayedKeyRef.current = null
+        setOptions([])
         setOptionSeed((prev) => prev + 1)
         setSelectedAnswer(null)
         setShowAnswer(false)
@@ -963,6 +997,8 @@ export default function LearnPage({
         setSelectedAnswer(null)
         setShowAnswer(false)
         setSettingsVisible(false)
+        lastAutoPlayedKeyRef.current = null
+        setOptions([])
         setOptionSeed((prev) => prev + 1)
     }
 
@@ -987,6 +1023,8 @@ export default function LearnPage({
         setQuestionsAnswered(0)
         setSummaryVisible(false)
         setSessionCompleted(false)
+        lastAutoPlayedKeyRef.current = null
+        setOptions([])
         setOptionSeed((prev) => prev + 1)
     }
 
@@ -994,6 +1032,7 @@ export default function LearnPage({
         setSummaryVisible(false)
         setSelectedAnswer(null)
         setShowAnswer(false)
+        lastAutoPlayedKeyRef.current = null
     }
 
     const renderWordsPreview = (

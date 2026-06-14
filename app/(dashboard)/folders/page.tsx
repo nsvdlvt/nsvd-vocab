@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useMemo, useState } from "react"
+import { useEffect, useEffectEvent, useMemo, useState } from "react"
 import { useRouter } from "next/navigation"
 import { Check, Clock3, MoreHorizontal, Pencil, Search, SlidersHorizontal, Trash2, User } from "lucide-react"
 import { supabase } from "@/lib/supabase"
@@ -40,13 +40,14 @@ type LearningSession = {
 }
 
 type ProgressActivityRow = {
+  word_id?: string | null
   last_reviewed_at?: string | null
   updated_at?: string | null
-  vocab_words?: {
-    set_id?: string | null
-  } | {
-    set_id?: string | null
-  }[] | null
+}
+
+type VocabWordSetRow = {
+  id: string
+  set_id?: string | null
 }
 
 type LearningWordProgress = {
@@ -101,9 +102,6 @@ const getLearningStats = (
   }
 }
 
-const first = <T,>(value: T | T[] | null | undefined) =>
-  Array.isArray(value) ? value[0] : value
-
 const latestDate = (...values: (string | null | undefined)[]) => {
   const latest = values
     .map((value) => (value ? new Date(value).getTime() : Number.NaN))
@@ -118,15 +116,18 @@ export default function ArchivePage() {
   const [loading, setLoading] = useState(true)
   const [sets, setSets] = useState<VocabSet[]>([])
   const [search, setSearch] = useState("")
-  const [sortBy, setSortBy] = useState<SortBy>("az")
+  const [sortBy, setSortBy] = useState<SortBy>("modified")
   const [filterTag, setFilterTag] = useState("all")
   const [sortOpen, setSortOpen] = useState(false)
   const [openSetMenuId, setOpenSetMenuId] = useState<string | null>(null)
   const [pendingDelete, setPendingDelete] = useState<VocabSet | null>(null)
   const [deleteError, setDeleteError] = useState("")
 
-  useEffect(() => {
-    const loadSets = async () => {
+  const loadSets = useEffectEvent(async (showInitialLoading = false) => {
+      if (showInitialLoading) {
+        setLoading(true)
+      }
+
       const {
         data: { session },
       } = await supabase.auth.getSession()
@@ -172,37 +173,52 @@ export default function ArchivePage() {
               .in("set_id", setIds)
           : { data: [] }
 
-      const sessionBySetId = new Map(
-        ((sessions as LearningSession[] | null) || []).map((learningSession) => [
-          learningSession.set_id,
-          learningSession,
-        ])
-      )
+      const sessionBySetId = new Map<string, LearningSession>()
+      ;((sessions as LearningSession[] | null) || []).forEach((learningSession) => {
+        const currentSession = sessionBySetId.get(learningSession.set_id)
+        const currentTime = currentSession?.updated_at
+          ? new Date(currentSession.updated_at).getTime()
+          : Number.NaN
+        const nextTime = new Date(learningSession.updated_at).getTime()
 
-      const { data: progressRows } =
+        if (!currentSession || nextTime > currentTime) {
+          sessionBySetId.set(learningSession.set_id, learningSession)
+        }
+      })
+
+      const { data: wordRows } =
         setIds.length > 0
           ? await supabase
+              .from("vocab_words")
+              .select("id, set_id")
+              .in("set_id", setIds)
+          : { data: [] }
+
+      const wordSetById = new Map(
+        ((wordRows || []) as VocabWordSetRow[]).map((word) => [word.id, word.set_id || ""])
+      )
+      const wordIds = Array.from(wordSetById.keys())
+
+      const { data: progressRows } =
+        wordIds.length > 0
+          ? await supabase
               .from("user_word_progress")
-              .select(`
-                last_reviewed_at,
-                updated_at,
-                vocab_words!inner(set_id)
-              `)
+              .select("word_id, last_reviewed_at, updated_at")
               .eq("user_id", user.id)
-              .in("vocab_words.set_id", setIds)
+              .in("word_id", wordIds)
           : { data: [] }
 
       const latestProgressBySetId = new Map<string, string>()
       ;((progressRows || []) as unknown as ProgressActivityRow[]).forEach((row) => {
-        const word = first(row.vocab_words)
-        if (!word?.set_id) return
+        const setId = row.word_id ? wordSetById.get(row.word_id) : null
+        if (!setId) return
 
         const nextLatest = latestDate(row.last_reviewed_at, row.updated_at)
-        const currentLatest = latestProgressBySetId.get(word.set_id)
+        const currentLatest = latestProgressBySetId.get(setId)
         const latest = latestDate(currentLatest, nextLatest)
 
         if (latest) {
-          latestProgressBySetId.set(word.set_id, latest)
+          latestProgressBySetId.set(setId, latest)
         }
       })
 
@@ -231,9 +247,32 @@ export default function ArchivePage() {
 
       setSets(formatted)
       setLoading(false)
+  })
+
+  useEffect(() => {
+    const initialLoad = window.setTimeout(() => {
+      void loadSets(true)
+    }, 0)
+
+    const refreshSets = () => {
+      void loadSets(false)
+    }
+    const refreshWhenVisible = () => {
+      if (document.visibilityState === "visible") {
+        refreshSets()
+      }
     }
 
-    loadSets()
+    window.addEventListener("focus", refreshSets)
+    window.addEventListener("pageshow", refreshSets)
+    document.addEventListener("visibilitychange", refreshWhenVisible)
+
+    return () => {
+      window.clearTimeout(initialLoad)
+      window.removeEventListener("focus", refreshSets)
+      window.removeEventListener("pageshow", refreshSets)
+      document.removeEventListener("visibilitychange", refreshWhenVisible)
+    }
   }, [])
 
   const deleteSet = async (setId: string) => {

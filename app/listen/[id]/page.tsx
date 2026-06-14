@@ -45,6 +45,7 @@ export default function ListenPage({
   const router = useRouter()
   const audioRef = useRef<HTMLAudioElement | null>(null)
   const autoplayPendingRef = useRef(false)
+  const lastAutoPlayedKeyRef = useRef<string | null>(null)
 
   const [loading, setLoading] = useState(true)
   const [started, setStarted] = useState(false)
@@ -64,6 +65,9 @@ export default function ListenPage({
   const [audioPulse, setAudioPulse] = useState(false)
 
   const currentWord = queue[0]
+  const currentAudioKey = currentWord
+    ? `${currentWord.id}:${answeredQuestions}`
+    : null
   const maxQuestions = queue.length
   const parsedAmount = Number(questionAmount)
   const isInvalidAmount =
@@ -171,17 +175,23 @@ export default function ListenPage({
   }, [id, router])
 
   useEffect(() => {
-    if (!started || !currentWord || showAnswer || !autoPlay || !autoplayPendingRef.current) {
+    if (!started || !currentWord || !currentAudioKey || showAnswer || !autoPlay || !autoplayPendingRef.current) {
       return
     }
 
+    if (lastAutoPlayedKeyRef.current === currentAudioKey) {
+      autoplayPendingRef.current = false
+      return
+    }
+
+    lastAutoPlayedKeyRef.current = currentAudioKey
     autoplayPendingRef.current = false
     const timeout = window.setTimeout(() => {
       playAudio()
     }, 0)
 
     return () => window.clearTimeout(timeout)
-  }, [started, currentWord, showAnswer, autoPlay, audioPlaying, playAudio])
+  }, [started, currentWord, currentAudioKey, showAnswer, autoPlay, audioPlaying, playAudio])
 
   const checkAnswer = () => {
     if (!currentWord || showAnswer) return
@@ -222,6 +232,7 @@ export default function ListenPage({
     setInput("")
     setResult("idle")
     setShowAnswer(false)
+    lastAutoPlayedKeyRef.current = null
     autoplayPendingRef.current = true
     setQueue((prev) => prev.slice(1))
 
@@ -293,6 +304,7 @@ export default function ListenPage({
             onClick={() => {
               if (isInvalidAmount || maxQuestions === 0) return
               setQuestionLimit(parsedAmount)
+              lastAutoPlayedKeyRef.current = null
               autoplayPendingRef.current = true
               setStarted(true)
             }}
@@ -373,6 +385,7 @@ export default function ListenPage({
               setInput("")
               setShowAnswer(false)
               setResult("idle")
+              lastAutoPlayedKeyRef.current = null
               autoplayPendingRef.current = true
               setStreak(0)
               setCorrectCount(0)
@@ -437,7 +450,6 @@ export default function ListenPage({
                 <p className="text-xs uppercase tracking-[0.22em] text-[#ddb897]">
                   Nghe và gõ lại từ bạn nghe được
                 </p>
-                <p className="mt-1 text-lg font-bold">{currentWord.meaning}</p>
               </div>
               <div className="flex items-center gap-3">
                 <button
@@ -540,32 +552,6 @@ export default function ListenPage({
                       </div>
                     </div>
 
-                    <div className="flex items-center gap-3">
-                      <button
-                        onClick={playAudio}
-                        className={`relative flex h-10 w-10 items-center justify-center rounded-xl bg-blue-50 transition duration-200 hover:bg-blue-100 active:scale-95 ${
-                          audioPulse ? "scale-110 bg-blue-100 shadow-[0_0_0_8px_rgba(59,130,246,0.10)]" : ""
-                        }`}
-                      >
-                        <Volume2 className={`h-5 w-5 text-blue-600 ${audioPulse ? "animate-pulse" : ""}`} />
-                        {audioPulse && (
-                          <span className="absolute inset-0 rounded-xl border border-blue-300 animate-ping" />
-                        )}
-                      </button>
-
-                      <button
-                        onClick={() => setAutoPlay((prev) => !prev)}
-                        className={`relative h-6 w-11 rounded-full transition ${
-                          autoPlay ? "bg-blue-600" : "bg-gray-200"
-                        }`}
-                      >
-                        <div
-                          className={`absolute top-0.5 h-5 w-5 rounded-full bg-white transition ${
-                            autoPlay ? "left-5" : "left-0.5"
-                          }`}
-                        />
-                      </button>
-                    </div>
                   </div>
 
                   <div className="mt-5">
