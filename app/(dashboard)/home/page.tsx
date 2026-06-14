@@ -60,9 +60,7 @@ type ReviewForecastRow = {
   proficient_at?: string | null
   fluent_at?: string | null
   level_changed_at?: string | null
-  vocab_words?: {
-    id: string
-  } | null
+  vocab_words?: { id: string } | { id: string }[] | null
 }
 
 type ReviewForecastPoint = {

@@ -47,24 +47,27 @@ type ReviewRow = {
   proficient_at?: string | null
   fluent_at?: string | null
   level_changed_at?: string | null
-  vocab_words: {
-    id: string
-    word: string
-    meaning: string
-    ipa?: string | null
-    example?: string | null
-    word_type?: string | null
-    audio_url?: string | null
-    set_id: string
-    vocab_sets?: {
-      title?: string | null
-    } | null
-  }
+  vocab_words?: ReviewRowWord | ReviewRowWord[] | null
 }
 
 type AnswerState = "idle" | "showing"
 
+type ReviewRowWord = {
+  id: string
+  word: string
+  meaning: string
+  ipa?: string | null
+  example?: string | null
+  word_type?: string | null
+  audio_url?: string | null
+  set_id: string
+  vocab_sets?: { title?: string | null } | { title?: string | null }[] | null
+}
+
 const shuffleWords = <T,>(items: T[]) => [...items].sort(() => Math.random() - 0.5)
+
+const first = <T,>(value: T | T[] | null | undefined) =>
+  Array.isArray(value) ? value[0] : value
 
 export default function ReviewSession({ setId }: ReviewSessionProps) {
   const router = useRouter()
@@ -151,33 +154,38 @@ export default function ReviewSession({ setId }: ReviewSessionProps) {
         return
       }
 
-      const reviewWords: ReviewWord[] = ((progressRows || []) as ReviewRow[])
-        .filter((row) => isDueForReviewToday(row))
+      const reviewWords: ReviewWord[] = ((progressRows || []) as unknown as ReviewRow[])
+        .filter((row) => isDueForReviewToday(row) && first(row.vocab_words))
         .sort(
           (a, b) =>
             getEffectiveReviewDate(a).getTime() -
             getEffectiveReviewDate(b).getTime()
         )
-        .map((row) => ({
-          id: row.vocab_words.id,
-          word: row.vocab_words.word,
-          meaning: row.vocab_words.meaning,
-          ipa: row.vocab_words.ipa || undefined,
-          example: row.vocab_words.example || undefined,
-          word_type: row.vocab_words.word_type || undefined,
-          audio_url: row.vocab_words.audio_url || undefined,
-          review_id: row.id,
-          interval_days: row.interval_days || 1,
-          repetitions: row.repetitions || 0,
-          ease_factor: row.ease_factor || 2.5,
-          review_at: row.review_at,
-          mastered_at: row.mastered_at,
-          proficient_at: row.proficient_at,
-          fluent_at: row.fluent_at,
-          level_changed_at: row.level_changed_at,
-          set_id: row.vocab_words.set_id,
-          set_title: row.vocab_words.vocab_sets?.title || "Bộ từ",
-        }))
+        .map((row) => {
+          const word = first(row.vocab_words)!
+          const setInfo = first(word.vocab_sets)
+
+          return {
+            id: word.id,
+            word: word.word,
+            meaning: word.meaning,
+            ipa: word.ipa || undefined,
+            example: word.example || undefined,
+            word_type: word.word_type || undefined,
+            audio_url: word.audio_url || undefined,
+            review_id: row.id,
+            interval_days: row.interval_days || 1,
+            repetitions: row.repetitions || 0,
+            ease_factor: row.ease_factor || 2.5,
+            review_at: row.review_at,
+            mastered_at: row.mastered_at,
+            proficient_at: row.proficient_at,
+            fluent_at: row.fluent_at,
+            level_changed_at: row.level_changed_at,
+            set_id: word.set_id,
+            set_title: setInfo?.title || "Bo tu",
+          }
+        })
 
       setQueue(shuffleWords(reviewWords))
       setLoading(false)
@@ -504,3 +512,4 @@ export default function ReviewSession({ setId }: ReviewSessionProps) {
     </section>
   )
 }
+

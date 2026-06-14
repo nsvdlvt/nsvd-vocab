@@ -2,10 +2,27 @@
 
 import { useEffect, useMemo, useState } from "react"
 import { useRouter } from "next/navigation"
-import { ArrowLeft, BookOpen, CalendarDays, Clock3, Layers3, Play } from "lucide-react"
+import {
+  ArrowLeft,
+  BookOpen,
+  CalendarDays,
+  Clock3,
+  Layers3,
+  Play,
+} from "lucide-react"
 import { supabase } from "@/lib/supabase"
 import { isDueForReviewToday } from "@/lib/review-due"
 import { MASTERED_LEVEL } from "@/lib/spaced-repetition"
+
+type SetInfo = {
+  title?: string | null
+  description?: string | null
+}
+
+type DueReviewWord = {
+  set_id: string
+  vocab_sets?: SetInfo | SetInfo[] | null
+}
 
 type DueReviewRow = {
   review_at?: string | null
@@ -15,13 +32,7 @@ type DueReviewRow = {
   proficient_at?: string | null
   fluent_at?: string | null
   level_changed_at?: string | null
-  vocab_words: {
-    set_id: string
-    vocab_sets?: {
-      title?: string | null
-      description?: string | null
-    } | null
-  }
+  vocab_words?: DueReviewWord | DueReviewWord[] | null
 }
 
 type DueSetSummary = {
@@ -30,6 +41,9 @@ type DueSetSummary = {
   description: string
   dueCount: number
 }
+
+const first = <T,>(value: T | T[] | null | undefined) =>
+  Array.isArray(value) ? value[0] : value
 
 export default function ReviewLandingPage() {
   const router = useRouter()
@@ -77,25 +91,30 @@ export default function ReviewLandingPage() {
 
       const grouped = new Map<string, DueSetSummary>()
 
-      ;((data || []) as DueReviewRow[]).forEach((row) => {
+      ;((data || []) as unknown as DueReviewRow[]).forEach((row) => {
         if (!isDueForReviewToday(row)) {
           return
         }
 
-        const setId = row.vocab_words.set_id
-        const current = grouped.get(setId)
+        const word = first(row.vocab_words)
+        if (!word) {
+          return
+        }
+
+        const setInfo = first(word.vocab_sets)
+        const current = grouped.get(word.set_id)
 
         if (current) {
           current.dueCount += 1
           return
         }
 
-        grouped.set(setId, {
-          id: setId,
-          title: row.vocab_words.vocab_sets?.title || "Bộ từ chưa đặt tên",
+        grouped.set(word.set_id, {
+          id: word.set_id,
+          title: setInfo?.title || "Bo tu chua dat ten",
           description:
-            row.vocab_words.vocab_sets?.description ||
-            "Các từ trong bộ này đang đến hạn ôn theo lịch học ngắt quãng.",
+            setInfo?.description ||
+            "Cac tu trong bo nay dang den han on theo lich hoc ngat quang.",
           dueCount: 1,
         })
       })
@@ -119,7 +138,7 @@ export default function ReviewLandingPage() {
       <section className="dashboard-shell min-h-[calc(100vh-5rem)]">
         <div className="dashboard-loading">
           <div className="dashboard-spinner" />
-          <p className="dashboard-loading-text">Đang tải danh sách ôn tập</p>
+          <p className="dashboard-loading-text">Dang tai danh sach on tap</p>
         </div>
       </section>
     )
@@ -139,7 +158,7 @@ export default function ReviewLandingPage() {
                 className="inline-flex items-center gap-2 font-bold text-[#6b5b4d] transition hover:text-[#241c17]"
               >
                 <ArrowLeft className="h-5 w-5" />
-                Quay lại
+                Quay lai
               </button>
 
               <button
@@ -147,20 +166,21 @@ export default function ReviewLandingPage() {
                 className="inline-flex h-12 items-center justify-center gap-2 rounded-3xl bg-[#d96d32] px-6 text-base font-bold text-white transition hover:bg-[#c25f29]"
               >
                 <Play className="h-4 w-4" />
-                Ôn tất cả ngay
+                On tat ca ngay
               </button>
             </div>
 
             <div className="mt-8 grid gap-6 lg:grid-cols-[1.3fr_0.7fr]">
               <div>
                 <p className="text-sm font-bold uppercase tracking-[0.24em] text-[#9a6d48]">
-                  Học ngắt quãng
+                  Hoc ngat quang
                 </p>
                 <h1 className="mt-3 max-w-3xl text-4xl font-black tracking-[-0.04em] text-[#241c17] md:text-5xl">
-                  Vào là thấy ngay các từ đến hạn ôn tập hôm nay.
+                  Vao la thay ngay cac tu den han on tap hom nay.
                 </h1>
                 <p className="mt-4 max-w-2xl text-lg leading-8 text-[#66584b]">
-                  Chọn học toàn bộ hoặc bắt đầu từ từng bộ từ có thẻ đang đến hạn theo lịch SRS.
+                  Chon hoc toan bo hoac bat dau tu tung bo tu co the dang den
+                  han theo lich SRS.
                 </p>
               </div>
 
@@ -168,23 +188,29 @@ export default function ReviewLandingPage() {
                 <div className="dashboard-soft-card">
                   <div className="flex items-center gap-2 text-[#8d6542]">
                     <Clock3 className="h-4 w-4" />
-                    <p className="dashboard-card-label">Đến hạn hôm nay</p>
+                    <p className="dashboard-card-label">Den han hom nay</p>
                   </div>
-                  <p className="mt-3 text-3xl font-black text-[#241c17]">{totalDueWords}</p>
+                  <p className="mt-3 text-3xl font-black text-[#241c17]">
+                    {totalDueWords}
+                  </p>
                 </div>
                 <div className="dashboard-soft-card">
                   <div className="flex items-center gap-2 text-[#8d6542]">
                     <Layers3 className="h-4 w-4" />
-                    <p className="dashboard-card-label">Số bộ cần ôn</p>
+                    <p className="dashboard-card-label">So bo can on</p>
                   </div>
-                  <p className="mt-3 text-3xl font-black text-[#241c17]">{dueSets.length}</p>
+                  <p className="mt-3 text-3xl font-black text-[#241c17]">
+                    {dueSets.length}
+                  </p>
                 </div>
                 <div className="dashboard-soft-card">
                   <div className="flex items-center gap-2 text-[#8d6542]">
                     <CalendarDays className="h-4 w-4" />
-                    <p className="dashboard-card-label">Chế độ</p>
+                    <p className="dashboard-card-label">Che do</p>
                   </div>
-                  <p className="mt-3 text-xl font-black text-[#241c17]">Review SRS</p>
+                  <p className="mt-3 text-xl font-black text-[#241c17]">
+                    Review SRS
+                  </p>
                 </div>
               </div>
             </div>
@@ -198,16 +224,17 @@ export default function ReviewLandingPage() {
                 <BookOpen className="h-9 w-9" />
               </div>
               <h2 className="mt-5 text-3xl font-black text-[#241c17]">
-                Chưa có từ nào đến hạn
+                Chua co tu nao den han
               </h2>
               <p className="mx-auto mt-3 max-w-2xl text-lg leading-8 text-[#66584b]">
-                Hôm nay bạn chưa có thẻ ôn tập nào cần xử lý. Khi đến lịch, các từ sẽ tự hiện ở đây.
+                Hom nay ban chua co the on tap nao can xu ly. Khi den lich, cac
+                tu se tu hien o day.
               </p>
               <button
                 onClick={() => router.push("/home")}
                 className="mt-8 inline-flex h-12 items-center justify-center rounded-3xl bg-[#1f1a17] px-6 text-base font-bold text-white transition hover:bg-[#2d241f]"
               >
-                Quay về trang chủ
+                Quay ve trang chu
               </button>
             </div>
           ) : (
@@ -220,13 +247,15 @@ export default function ReviewLandingPage() {
                   <div className="max-w-3xl">
                     <div className="flex flex-wrap items-center gap-3">
                       <span className="rounded-full bg-[#f3e7da] px-4 py-2 text-sm font-bold text-[#8d6542]">
-                        {set.dueCount} thẻ đến hạn
+                        {set.dueCount} the den han
                       </span>
                       <span className="rounded-full bg-[#eef5ff] px-4 py-2 text-sm font-bold text-[#2b6cb0]">
-                        Sẵn sàng ôn ngay
+                        San sang on ngay
                       </span>
                     </div>
-                    <h2 className="mt-4 text-3xl font-black text-[#241c17]">{set.title}</h2>
+                    <h2 className="mt-4 text-3xl font-black text-[#241c17]">
+                      {set.title}
+                    </h2>
                     <p className="mt-3 text-base leading-7 text-[#66584b]">
                       {set.description}
                     </p>
@@ -237,14 +266,14 @@ export default function ReviewLandingPage() {
                       onClick={() => router.push(`/vocabsets/${set.id}`)}
                       className="inline-flex h-12 items-center justify-center rounded-3xl border border-[#dac5b1] bg-[#fff9f3] px-5 text-sm font-bold text-[#3d3026] transition hover:border-[#c96d35] hover:text-[#c96d35]"
                     >
-                      Xem bộ từ
+                      Xem bo tu
                     </button>
                     <button
                       onClick={() => router.push(`/review/${set.id}`)}
                       className="inline-flex h-12 items-center justify-center gap-2 rounded-3xl bg-[#1f1a17] px-5 text-sm font-bold text-white transition hover:bg-[#2d241f]"
                     >
                       <Play className="h-4 w-4" />
-                      Bắt đầu ôn
+                      Bat dau on
                     </button>
                   </div>
                 </div>

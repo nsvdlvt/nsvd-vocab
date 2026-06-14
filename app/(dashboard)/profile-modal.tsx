@@ -8,6 +8,9 @@ import { supabase } from "@/lib/supabase"
 type ProfileUser = {
   id?: string
   email?: string
+  full_name?: string | null
+  avatar_url?: string | null
+  role?: string | null
   user_metadata?: {
     full_name?: string | null
     avatar_url?: string | null

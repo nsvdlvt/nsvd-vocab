@@ -23,7 +23,7 @@ type WordType = {
   synonyms: string
   audio_url: string
   starred?: boolean
-memoryStrength?: number
+memoryStrength?: number | null
 }
 
 type SessionWordProgress = {
