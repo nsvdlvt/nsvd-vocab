@@ -388,7 +388,7 @@ export default function ReviewSession({ setId }: ReviewSessionProps) {
             <div className="mb-3 flex items-center justify-between">
               <div>
                 <p className="dashboard-card-label">
-                  {isReviewAll ? "Học ngắt quãng tổng hợp" : "Học ngắt quãng"}
+                  {"Học ngắt quãng"}
                 </p>
                 <h1 className="mt-2 text-3xl font-black text-[#241c17]">
                   {sessionTitle}

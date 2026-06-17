@@ -23,13 +23,15 @@ export const parseSupabaseTimestamp = (value?: string | null) => {
     const [seconds, milliseconds] = secondsWithFraction.split(".")
 
     return new Date(
-      year,
-      month - 1,
-      day,
-      Number(hours),
-      Number(minutes),
-      Number(seconds),
-      Number(milliseconds)
+      Date.UTC(
+        year,
+        month - 1,
+        day,
+        Number(hours),
+        Number(minutes),
+        Number(seconds),
+        Number(milliseconds)
+      )
     )
   }
 

@@ -10,6 +10,15 @@ import {
   X,
 } from "lucide-react"
 import { supabase } from "@/lib/supabase"
+import {
+  fetchDueWordsForCurrentUser,
+  isReviewDueSet,
+} from "@/lib/review-due-words"
+import {
+  buildMasteryTimestampUpdate,
+  calculateSpacedRepetitionUpdate,
+} from "@/lib/spaced-repetition"
+import { toUtcIsoString } from "@/lib/time"
 
 type ListeningWord = {
   id: string
@@ -23,6 +32,14 @@ type ListeningWord = {
 }
 
 type ResultState = "idle" | "correct" | "wrong"
+
+type UserWordProgressRow = {
+  id: string
+  repetitions?: number | null
+  ease_factor?: number | null
+  total_correct?: number | null
+  total_wrong?: number | null
+}
 
 const normalize = (text: string) =>
   text
@@ -150,14 +167,47 @@ export default function ListenPage({
         return
       }
 
-      const { data } = await supabase
-        .from("vocab_words")
-        .select("*")
-        .eq("set_id", id)
+      const baseWords = isReviewDueSet(id)
+        ? ((await fetchDueWordsForCurrentUser()).words as ListeningWord[])
+        : (((await supabase
+            .from("vocab_words")
+            .select("*")
+            .eq("set_id", id)).data || []) as ListeningWord[])
+      const wordIds = baseWords.map((word) => word.id)
 
-      const words = (data || []).map((word) => ({
+      if (wordIds.length > 0) {
+        await supabase
+          .from("user_word_progress")
+          .upsert(
+            wordIds.map((wordId) => ({
+              user_id: user.id,
+              word_id: wordId,
+            })),
+            {
+              onConflict: "user_id,word_id",
+              ignoreDuplicates: true,
+            }
+          )
+      }
+
+      const { data: progressRows } =
+        wordIds.length > 0
+          ? await supabase
+              .from("user_word_progress")
+              .select("word_id, repetitions")
+              .eq("user_id", user.id)
+              .in("word_id", wordIds)
+          : { data: [] }
+
+      const progressMap = new Map(
+        ((progressRows || []) as { word_id: string; repetitions?: number | null }[]).map(
+          (row) => [row.word_id, Number(row.repetitions ?? 0)]
+        )
+      )
+
+      const words = baseWords.map((word) => ({
         ...word,
-        memoryStrength: 0,
+        memoryStrength: progressMap.get(word.id) ?? 0,
       }))
 
       const shuffled = [...words].sort(() => Math.random() - 0.5)
@@ -205,6 +255,7 @@ export default function ListenPage({
 
     setResult(isCorrect ? "correct" : "wrong")
     setShowAnswer(true)
+    void updateSpacedRepetition(currentWord.id, isCorrect)
 
     setQueue((prev) =>
       prev.map((word) => {
@@ -213,8 +264,12 @@ export default function ListenPage({
         return {
           ...word,
           memoryStrength: isCorrect
-            ? Math.min(word.memoryStrength + 1, 4)
-            : Math.max(word.memoryStrength - 1, 0),
+            ? word.memoryStrength < 0
+              ? 1
+              : Math.min(word.memoryStrength + 1, 4)
+            : word.memoryStrength <= 0
+            ? -1
+            : Math.max(word.memoryStrength - 1, -1),
         }
       })
     )
@@ -228,6 +283,58 @@ export default function ListenPage({
       setWrongCount((prev) => prev + 1)
       setStreak(0)
     }
+  }
+
+  const updateSpacedRepetition = async (
+    wordId: string,
+    correct: boolean
+  ) => {
+    const {
+      data: { user },
+    } = await supabase.auth.getUser()
+
+    if (!user) {
+      return
+    }
+
+    const { data: progress } = await supabase
+      .from("user_word_progress")
+      .select("*")
+      .eq("user_id", user.id)
+      .eq("word_id", wordId)
+      .single()
+
+    if (!progress) {
+      return
+    }
+
+    const row = progress as UserWordProgressRow
+    const previousLevel = row.repetitions ?? 0
+    const nextReview = calculateSpacedRepetitionUpdate(previousLevel, correct)
+    const now = toUtcIsoString()
+
+    await supabase
+      .from("user_word_progress")
+      .update({
+        repetitions: nextReview.level,
+        interval_days: nextReview.intervalDays,
+        ease_factor: row.ease_factor,
+        review_at: nextReview.reviewAt,
+        last_reviewed_at: now,
+        total_correct: correct
+          ? (row.total_correct ?? 0) + 1
+          : row.total_correct ?? 0,
+        total_wrong: !correct
+          ? (row.total_wrong ?? 0) + 1
+          : row.total_wrong ?? 0,
+        updated_at: now,
+        ...buildMasteryTimestampUpdate(
+          previousLevel,
+          nextReview.level,
+          new Date(now)
+        ),
+      })
+      .eq("id", row.id)
   }
 
   const nextQuestion = () => {

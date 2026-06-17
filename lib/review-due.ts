@@ -2,7 +2,9 @@ import {
   FLUENT_LEVEL,
   MASTERED_LEVEL,
   PROFICIENT_LEVEL,
+  SRS_REVIEW_LEVEL,
 } from "@/lib/spaced-repetition"
+import { parseSupabaseTimestamp } from "@/lib/time"
 
 export const startOfDay = (date: Date) => {
   const next = new Date(date)
@@ -20,15 +22,8 @@ export type ReviewDueInput = {
   level_changed_at?: string | null
 }
 
-const parseDateOnly = (value: string) => {
-  const [year, month, day] = value.slice(0, 10).split("-").map(Number)
-
-  if (!year || !month || !day) {
-    return startOfDay(new Date(value))
-  }
-
-  return new Date(year, month - 1, day)
-}
+const parseDateOnly = (value: string) =>
+  startOfDay(parseSupabaseTimestamp(value) || new Date(value))
 
 const addDays = (date: Date, days: number) => {
   const next = new Date(date)
@@ -46,7 +41,7 @@ const getReferenceDate = (row: ReviewDueInput, baseDate: Date) => {
 }
 
 const getLevelAnchor = (row: ReviewDueInput) => {
-  const level = row.repetitions || 0
+  const level = row.repetitions ?? 0
 
   if (level >= FLUENT_LEVEL) {
     return row.fluent_at || row.level_changed_at || row.review_at
@@ -60,6 +55,10 @@ const getLevelAnchor = (row: ReviewDueInput) => {
     return row.mastered_at || row.level_changed_at || row.review_at
   }
 
+  if (level >= SRS_REVIEW_LEVEL) {
+    return row.level_changed_at || row.last_reviewed_at || row.review_at
+  }
+
   return null
 }
 
@@ -68,7 +67,7 @@ const getSrsIntervalDays = (level: number) => {
     return 7
   }
 
-  if (level >= MASTERED_LEVEL) {
+  if (level >= SRS_REVIEW_LEVEL) {
     return 3
   }
 
@@ -84,15 +83,20 @@ export const getEffectiveReviewDate = (
       ? { review_at: input }
       : input
   const today = getReferenceDate(row, baseDate)
-  const level = row.repetitions || 0
+  const level = row.repetitions ?? 0
   const anchor = getLevelAnchor(row)
+  const explicitReviewDate = row.review_at ? parseDateOnly(row.review_at) : null
 
-  if (level >= MASTERED_LEVEL && anchor) {
+  if (explicitReviewDate) {
+    return explicitReviewDate < today ? today : explicitReviewDate
+  }
+
+  if (level >= SRS_REVIEW_LEVEL && anchor) {
     const dueDate = startOfDay(addDays(parseDateOnly(anchor), getSrsIntervalDays(level)))
     return dueDate < today ? today : dueDate
   }
 
-  const reviewDate = row.review_at ? parseDateOnly(row.review_at) : today
+  const reviewDate = today
   return reviewDate < today ? today : reviewDate
 }
 

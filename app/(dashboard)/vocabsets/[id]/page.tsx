@@ -7,12 +7,8 @@ import {
   BadgeCheck,
   BookOpen,
   BookText,
-  CalendarDays,
-  ClipboardCheck,
   Headphones,
-  Languages,
   Layers3,
-  MessageSquareQuote,
   PenSquare,
   ScanSearch,
   Sparkles,
@@ -32,15 +28,10 @@ type WordType = {
   memoryStrength?: number | null
 }
 
-type SessionWordProgress = {
-  id?: string
-  memoryStrength?: number
+type UserWordProgressRow = {
+  word_id: string
+  repetitions?: number | null
 }
-
-type SessionRow = {
-  all_words?: SessionWordProgress[] | null
-}
-
 
 type LearningMode = {
   title: string
@@ -82,28 +73,10 @@ const learningModes = (id: string): LearningMode[] => [
     iconClassName: "bg-[#f3edff] text-[#7c4dff]",
   },
   {
-    title: "Kiểm tra",
-    href: `/review/${id}`,
-    icon: ClipboardCheck,
-    iconClassName: "bg-[#fff6d8] text-[#a87300]",
-  },
-  {
-    title: "Ngữ pháp",
-    href: `/grammar/${id}`,
-    icon: Languages,
-    iconClassName: "bg-[#e8fbf8] text-[#0f8b7b]",
-  },
-  {
     title: "Đọc hiểu",
     href: `/reading/${id}`,
     icon: ScanSearch,
     iconClassName: "bg-[#fbeee8] text-[#b45309]",
-  },
-  {
-    title: "Speaking",
-    href: `/speaking/${id}`,
-    icon: MessageSquareQuote,
-    iconClassName: "bg-[#edf2ff] text-[#4338ca]",
   },
 ]
 
@@ -121,7 +94,7 @@ const getWordGroups = (words: WordType[]): WordGroup[] => [
     words: words.filter(
       (word) =>
         typeof word.memoryStrength === "number" &&
-        word.memoryStrength > 0 &&
+        (word.memoryStrength > 0 || word.memoryStrength === -1) &&
         word.memoryStrength < 4
     ),
   },
@@ -137,7 +110,6 @@ const getWordGroups = (words: WordType[]): WordGroup[] => [
     ),
   },
 ]
-
 
 export default function SetPage({
   params,
@@ -183,19 +155,21 @@ export default function SetPage({
           data: { user },
         } = await supabase.auth.getUser()
 
-        if (user) {
-          const { data: session } = await supabase
-            .from("learning_sessions")
-            .select("all_words")
+        if (user && mergedWords.length > 0) {
+          const { data: progressRows } = await supabase
+            .from("user_word_progress")
+            .select("word_id, repetitions")
             .eq("user_id", user.id)
-            .eq("set_id", id)
-            .maybeSingle()
+            .in(
+              "word_id",
+              mergedWords.map((word) => word.id)
+            )
 
           const progressMap = new Map<string, number>()
-          ;(((session as SessionRow | null)?.all_words || []) as SessionWordProgress[]).forEach((item) => {
-            if (!item.id) return
-            const strength = Number(item.memoryStrength || 0)
-            progressMap.set(item.id, Number.isNaN(strength) ? 0 : strength)
+          ;((progressRows || []) as UserWordProgressRow[]).forEach((item) => {
+            if (!item.word_id) return
+            const strength = Number(item.repetitions ?? 0)
+            progressMap.set(item.word_id, Number.isNaN(strength) ? 0 : strength)
           })
 
           mergedWords = mergedWords.map((word) => ({
@@ -215,7 +189,6 @@ export default function SetPage({
 
     void loadSet()
   }, [id])
-
 
   const groupedWords = useMemo(() => getWordGroups(words), [words])
   const modes = useMemo(() => learningModes(id), [id])
@@ -237,14 +210,6 @@ export default function SetPage({
         >
           <ArrowLeft className="h-5 w-5" />
           Quay lại
-        </button>
-
-        <button
-          onClick={() => router.push(`/review/${id}`)}
-          className="inline-flex items-center gap-2 rounded-2xl bg-[#2563eb] px-4 py-3 font-semibold text-white shadow-lg shadow-blue-200 transition hover:bg-[#1f57d6]"
-        >
-          <CalendarDays className="h-5 w-5" />
-          Học ngắt quãng
         </button>
       </div>
 
@@ -281,7 +246,7 @@ export default function SetPage({
 
       <div className="mb-10">
         <h2 className="mb-5 text-3xl font-black text-[#211914]">Chế độ học</h2>
-        <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+        <div className="grid grid-cols-2 gap-3 md:gap-4 xl:grid-cols-4">
           {modes.map((mode) => {
             const Icon = mode.icon
 
@@ -289,14 +254,16 @@ export default function SetPage({
               <button
                 key={mode.title}
                 onClick={() => router.push(mode.href)}
-                className="rounded-[2rem] border border-[#eadccf] bg-white p-5 text-left shadow-sm transition hover:-translate-y-1 hover:shadow-xl"
+                className="flex min-h-[118px] flex-col items-center justify-center rounded-[1.35rem] border border-[#eadccf] bg-white px-3 py-4 text-center shadow-sm transition hover:-translate-y-1 hover:shadow-xl sm:min-h-[132px] sm:rounded-[1.6rem] sm:px-4 sm:py-5 xl:items-start xl:justify-start xl:rounded-[2rem] xl:p-5 xl:text-left"
               >
                 <div
-                  className={`mb-4 flex h-14 w-14 items-center justify-center rounded-2xl ${mode.iconClassName}`}
+                  className={`mb-3 flex h-11 w-11 items-center justify-center rounded-[1rem] ${mode.iconClassName} sm:h-12 sm:w-12 xl:mb-4 xl:h-14 xl:w-14 xl:rounded-2xl`}
                 >
-                  <Icon className="h-7 w-7" />
+                  <Icon className="h-5 w-5 xl:h-7 xl:w-7" />
                 </div>
-                <h3 className="text-lg font-black text-[#221a16]">{mode.title}</h3>
+                <h3 className="text-[15px] font-black leading-tight text-[#221a16] sm:text-base xl:text-lg">
+                  {mode.title}
+                </h3>
               </button>
             )
           })}
@@ -321,7 +288,9 @@ export default function SetPage({
                 </div>
                 <div>
                   <h3 className="text-2xl font-black text-[#221a16]">{group.title}</h3>
-                  <p className="text-sm font-medium text-[#8b7764]">{group.words.length} từ vựng</p>
+                  <p className="text-sm font-medium text-[#8b7764]">
+                    {group.words.length} từ vựng
+                  </p>
                 </div>
               </div>
 

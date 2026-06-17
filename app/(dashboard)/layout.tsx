@@ -102,8 +102,6 @@ export default function DashboardLayout({
     { title: "Kho lưu trữ", icon: Folder, path: "/folders" },
     { title: "Nhóm từ vựng", icon: Layers3, path: "/groups" },
     { title: "Community", icon: Globe, path: "/community" },
-    { title: "Tài liệu", icon: FolderPlus, path: "/documents" },
-    { title: "Test", icon: ClipboardCheck, path: "/test" },
     { title: "Pricing", icon: DollarSign, path: "/pricing" },
     { title: "Cài đặt", icon: Settings, path: "/settings" },
   ]

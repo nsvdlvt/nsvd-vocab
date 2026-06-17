@@ -1,4 +1,5 @@
 export const MASTERED_LEVEL = 4
+export const SRS_REVIEW_LEVEL = 3
 export const PROFICIENT_LEVEL = 5
 export const FLUENT_LEVEL = 6
 export const SRS_EXIT_LEVEL = 2
@@ -47,10 +48,14 @@ export const calculateSpacedRepetitionUpdate = (
   baseDate = new Date()
 ): SpacedRepetitionUpdate => {
   const nextLevel = remembered
-    ? Math.min(currentLevel + 1, MASTERED_LEVEL)
-    : Math.max(currentLevel - 2, 0)
+    ? currentLevel < 0
+      ? 1
+      : Math.min(currentLevel + 1, MASTERED_LEVEL)
+    : currentLevel <= 0
+    ? -1
+    : Math.max(currentLevel - 2, -1)
 
-  const intervalDays = nextLevel >= MASTERED_LEVEL ? 3 : 1
+  const intervalDays = nextLevel >= SRS_REVIEW_LEVEL ? 3 : 1
   const reviewAt = new Date(baseDate)
   reviewAt.setDate(reviewAt.getDate() + intervalDays)
 

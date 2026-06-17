@@ -17,8 +17,8 @@ import {
 } from "lucide-react"
 import { GeminiAssistant } from "@/components/dashboard/gemini-assistant"
 import { supabase } from "@/lib/supabase"
-import { getEffectiveReviewDate, startOfDay } from "@/lib/review-due"
-import { MASTERED_LEVEL } from "@/lib/spaced-repetition"
+import { getEffectiveReviewDate, isDueForReviewToday, startOfDay } from "@/lib/review-due"
+import { MASTERED_LEVEL, SRS_REVIEW_LEVEL } from "@/lib/spaced-repetition"
 import { formatRelativeStudyTime, getLatestTimestamp } from "@/lib/time"
 
 type Role = "ADMIN" | "PREMIUM" | "MEMBER" | string
@@ -48,9 +48,6 @@ type SupabaseSetRow = {
 type DashboardSession = {
   set_id: string
   updated_at: string
-  all_words?: {
-    memoryStrength?: number
-  }[] | null
 }
 
 type ReviewForecastRow = {
@@ -62,7 +59,6 @@ type ReviewForecastRow = {
   proficient_at?: string | null
   fluent_at?: string | null
   level_changed_at?: string | null
-  vocab_words?: { id: string } | { id: string }[] | null
 }
 
 type ReviewForecastPoint = {
@@ -74,6 +70,7 @@ type ReviewForecastPoint = {
 }
 
 type LastStudyProgressRow = {
+  word_id?: string | null
   last_reviewed_at?: string | null
   updated_at?: string | null
 }
@@ -95,6 +92,11 @@ const formatShortDayLabel = (date: Date, isToday: boolean) => {
   if (day === 0) return "CN"
   return `Th${day + 1}`
 }
+
+const getDayKey = (date: Date) =>
+  `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(
+    date.getDate()
+  ).padStart(2, "0")}`
 
 export default function HomePage() {
   const router = useRouter()
@@ -175,36 +177,36 @@ export default function HomePage() {
           mastered_at,
           proficient_at,
           fluent_at,
-          level_changed_at,
-          vocab_words!inner(id)
+          level_changed_at
         `)
         .eq("user_id", user.id)
-        .gte("repetitions", MASTERED_LEVEL)
+        .gte("repetitions", SRS_REVIEW_LEVEL)
 
       const rows = (reviewRows || []) as ReviewForecastRow[]
       const buckets = new Map<string, number>(
-        next7Days.map((date) => [startOfDay(date).toISOString(), 0])
+        next7Days.map((date) => [getDayKey(startOfDay(date)), 0])
       )
-      const maturedCount = rows.filter((row) => (row.repetitions || 0) >= MASTERED_LEVEL).length
+      const maturedCount = rows.filter((row) => (row.repetitions ?? 0) >= MASTERED_LEVEL).length
+      const dueTodayCount = rows.filter((row) => isDueForReviewToday(row, now)).length
 
       rows.forEach((row) => {
-        if ((row.repetitions ?? 0) < MASTERED_LEVEL) {
+        if ((row.repetitions ?? 0) < SRS_REVIEW_LEVEL) {
           return
         }
 
         const effectiveDate = getEffectiveReviewDate(row, now)
-        const key = effectiveDate.toISOString()
+        const key = getDayKey(startOfDay(effectiveDate))
 
         if (buckets.has(key)) {
           buckets.set(key, (buckets.get(key) || 0) + 1)
         }
       })
 
-      setDueReviewCount(buckets.get(today.toISOString()) || 0)
+      setDueReviewCount(dueTodayCount)
       setMasteredWords(maturedCount)
       setForecast(
         next7Days.map((date, index) => {
-          const key = startOfDay(date).toISOString()
+          const key = getDayKey(startOfDay(date))
           const isToday = index === 0
 
           return {
@@ -222,7 +224,7 @@ export default function HomePage() {
       if (setIds.length > 0) {
         const { data: sessions } = await supabase
           .from("learning_sessions")
-          .select("set_id, updated_at, all_words")
+          .select("set_id, updated_at")
           .eq("user_id", user.id)
           .in("set_id", setIds)
           .order("updated_at", { ascending: false })
@@ -232,7 +234,7 @@ export default function HomePage() {
 
         const { data: progressActivityRows } = await supabase
           .from("user_word_progress")
-          .select("last_reviewed_at, updated_at")
+          .select("word_id, last_reviewed_at, updated_at")
           .eq("user_id", user.id)
           .not("last_reviewed_at", "is", null)
           .order("last_reviewed_at", { ascending: false })
@@ -248,14 +250,26 @@ export default function HomePage() {
           )
         )
 
-        let learning = 0
+        const { data: learningProgressRows } = await supabase
+          .from("user_word_progress")
+          .select(`
+            repetitions,
+            vocab_words!inner(set_id)
+          `)
+          .eq("user_id", user.id)
+          .in("vocab_words.set_id", setIds)
 
-        sessionList.forEach((session) => {
-          ;(session.all_words || []).forEach((word) => {
-            const strength = word.memoryStrength || 0
-            if (strength >= 1 && strength < 4) learning += 1
-          })
-        })
+        const learning = ((learningProgressRows || []) as UserProgressStrengthRow[]).filter(
+          (row) => {
+            const strength = row.repetitions ?? 0
+            const word = first(row.vocab_words)
+            return (
+              Boolean(word?.set_id) &&
+              (strength >= 1 || strength === -1) &&
+              strength < 4
+            )
+          }
+        ).length
 
         setLearningWords(learning)
       }
@@ -397,7 +411,7 @@ export default function HomePage() {
                 </div>
 
                 <button
-                  onClick={() => router.push("/review/all")}
+                  onClick={() => router.push("/review")}
                   className="mt-6 flex h-14 w-full items-center justify-center gap-2 rounded-2xl bg-[#050505] font-black text-white transition hover:bg-[#191512]"
                 >
                   <CalendarDays className="h-4 w-4" />
@@ -540,7 +554,7 @@ export default function HomePage() {
               {[
                 { label: "Tạo bộ mới", href: "/new" },
                 { label: "Mở folders", href: "/folders" },
-                { label: "Ôn ngắt quãng", href: "/review/all" },
+                { label: "Ôn ngắt quãng", href: "/review" },
                 { label: "Community", href: "/community" },
               ].map((item) => (
                 <button
@@ -575,3 +589,10 @@ export default function HomePage() {
     </section>
   )
 }
+type UserProgressStrengthRow = {
+  repetitions?: number | null
+  vocab_words?: { set_id?: string | null } | { set_id?: string | null }[] | null
+}
+
+const first = <T,>(value: T | T[] | null | undefined) =>
+  Array.isArray(value) ? value[0] : value

@@ -37,11 +37,11 @@ type SupabaseVocabSet = {
 type LearningSession = {
   set_id: string
   updated_at: string
-  all_words?: LearningWordProgress[] | null
 }
 
 type ProgressActivityRow = {
   word_id?: string | null
+  repetitions?: number | null
   last_reviewed_at?: string | null
   updated_at?: string | null
 }
@@ -51,21 +51,15 @@ type VocabWordSetRow = {
   set_id?: string | null
 }
 
-type LearningWordProgress = {
-  memoryStrength?: number
-}
-
 type SortBy = "az" | "za" | "modified"
 
 const formatRelativeTime = formatRelativeStudyTime
 
 const getLearningStats = (
-  session: LearningSession | undefined,
+  progressRows: ProgressActivityRow[],
   totalWords: number
 ) => {
-  const words = session?.all_words || []
-
-  if (words.length === 0) {
+  if (progressRows.length === 0) {
     return {
       mastered: 0,
       learning: 0,
@@ -73,10 +67,10 @@ const getLearningStats = (
     }
   }
 
-  const mastered = words.filter((word) => (word.memoryStrength || 0) >= 4).length
-  const learning = words.filter((word) => {
-    const strength = word.memoryStrength || 0
-    return strength >= 1 && strength < 4
+  const mastered = progressRows.filter((word) => (word.repetitions ?? 0) >= 4).length
+  const learning = progressRows.filter((word) => {
+    const strength = word.repetitions ?? 0
+    return (strength >= 1 || strength === -1) && strength < 4
   }).length
 
   return {
@@ -143,8 +137,7 @@ export default function ArchivePage() {
               .from("learning_sessions")
               .select(`
                 set_id,
-                updated_at,
-                all_words
+                updated_at
               `)
               .eq("user_id", user.id)
               .in("set_id", setIds)
@@ -180,15 +173,20 @@ export default function ArchivePage() {
         wordIds.length > 0
           ? await supabase
               .from("user_word_progress")
-              .select("word_id, last_reviewed_at, updated_at")
+              .select("word_id, repetitions, last_reviewed_at, updated_at")
               .eq("user_id", user.id)
               .in("word_id", wordIds)
           : { data: [] }
 
       const latestProgressBySetId = new Map<string, string>()
-      ;((progressRows || []) as unknown as ProgressActivityRow[]).forEach((row) => {
+      const progressBySetId = new Map<string, ProgressActivityRow[]>()
+      ;((progressRows || []) as ProgressActivityRow[]).forEach((row) => {
         const setId = row.word_id ? wordSetById.get(row.word_id) : null
         if (!setId) return
+
+        const currentRows = progressBySetId.get(setId) || []
+        currentRows.push(row)
+        progressBySetId.set(setId, currentRows)
 
         const nextLatest = latestDate(row.last_reviewed_at, row.updated_at)
         const currentLatest = latestProgressBySetId.get(setId)
@@ -201,7 +199,7 @@ export default function ArchivePage() {
 
       const formatted = (data || []).map((item: SupabaseVocabSet) => {
         const totalWords = item.vocab_words?.[0]?.count || 0
-        const stats = getLearningStats(sessionBySetId.get(item.id), totalWords)
+        const stats = getLearningStats(progressBySetId.get(item.id) || [], totalWords)
 
         return {
           id: item.id,

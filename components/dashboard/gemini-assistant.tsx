@@ -33,13 +33,12 @@ export function GeminiAssistant() {
       }
 
       if (!response.ok) {
-        throw new Error(data.error || "Không thể nhận phản hồi từ Gemini.")
+        throw new Error(data.error || "Không thể nhận phản hồi từ OpenAI.")
       }
 
       setAnswer(data.text || "")
     } catch (err) {
-      const message =
-        err instanceof Error ? err.message : "Đã xảy ra lỗi khi gọi Gemini."
+      const message = err instanceof Error ? err.message : "Đã xảy ra lỗi khi gọi OpenAI."
       setError(message)
     } finally {
       setLoading(false)
@@ -50,7 +49,7 @@ export function GeminiAssistant() {
     <article className="dashboard-card bg-[linear-gradient(180deg,#fff8f1_0%,#f8ecdf_100%)]">
       <div className="flex items-start justify-between gap-4">
         <div>
-          <p className="dashboard-card-label">AI Gemini</p>
+          <p className="dashboard-card-label">AI OpenAI</p>
           <h2 className="mt-2 text-3xl font-black tracking-[-0.04em] text-[#241c17]">
             Hỏi nhanh trợ lý học tập
           </h2>
@@ -61,7 +60,7 @@ export function GeminiAssistant() {
       </div>
 
       <p className="mt-4 text-sm leading-7 text-[#66584b]">
-        Dùng Gemini để xin giải nghĩa từ, ví dụ câu, mẹo ghi nhớ hoặc gợi ý cách học.
+        Dùng OpenAI để xin giải nghĩa từ, ví dụ câu, mẹo ghi nhớ hoặc gợi ý cách học.
       </p>
 
       <form onSubmit={handleSubmit} className="mt-6 space-y-4">
@@ -78,7 +77,7 @@ export function GeminiAssistant() {
           className="inline-flex h-12 items-center justify-center gap-2 rounded-full bg-[#d96d32] px-6 text-sm font-bold text-white transition hover:bg-[#c45f29] disabled:cursor-not-allowed disabled:opacity-60"
         >
           {loading ? <LoaderCircle className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4" />}
-          {loading ? "Gemini đang trả lời..." : "Hỏi Gemini"}
+          {loading ? "OpenAI đang trả lời..." : "Hỏi OpenAI"}
         </button>
       </form>
 
@@ -89,7 +88,7 @@ export function GeminiAssistant() {
       ) : null}
 
       {answer ? (
-        <div className="mt-5 rounded-[1.75rem] bg-[#231b18] px-5 py-4 text-sm leading-7 text-[#f7efe5] whitespace-pre-wrap">
+        <div className="mt-5 whitespace-pre-wrap rounded-[1.75rem] bg-[#231b18] px-5 py-4 text-sm leading-7 text-[#f7efe5]">
           {answer}
         </div>
       ) : null}

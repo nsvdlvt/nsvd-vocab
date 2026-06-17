@@ -15,6 +15,10 @@ import {
 
 import { supabase } from "@/lib/supabase"
 import {
+    fetchDueWordsForCurrentUser,
+    isReviewDueSet,
+} from "@/lib/review-due-words"
+import {
     buildMasteryTimestampUpdate,
     calculateSpacedRepetitionUpdate,
 } from "@/lib/spaced-repetition"
@@ -78,7 +82,7 @@ const getMemoryStatus = (
         return "mastered"
     }
 
-    if (strength >= 1) {
+    if (strength >= 1 || strength === -1) {
         return "learning"
     }
 
@@ -86,7 +90,7 @@ const getMemoryStatus = (
 }
 
 const clampMemoryStrength = (strength: number) =>
-    Math.min(Math.max(strength, 0), MAX_MEMORY_STRENGTH)
+    Math.min(Math.max(strength, -1), MAX_MEMORY_STRENGTH)
 
 const shuffleWords = <T,>(items: T[]) =>
     [...items].sort(() => Math.random() - 0.5)
@@ -141,8 +145,8 @@ const buildOptionsForWord = (
 
 const normalizeWord = (word: Partial<LearningWord>) => ({
     ...word,
-    memoryStrength: clampMemoryStrength(word.memoryStrength || 0),
-    status: getMemoryStatus(word.memoryStrength || 0),
+    memoryStrength: clampMemoryStrength(word.memoryStrength ?? 0),
+    status: getMemoryStatus(word.memoryStrength ?? 0),
     hasSeen: Boolean(word.hasSeen),
     questionType: word.questionType || "mcq",
     starred: Boolean(word.starred),
@@ -268,7 +272,7 @@ export default function LearnPage({
     )
     const learningWords = allWords.filter(
         (word) =>
-            word.memoryStrength >= 1 &&
+            (word.memoryStrength >= 1 || word.memoryStrength === -1) &&
             word.memoryStrength < MAX_MEMORY_STRENGTH
     )
     const newWords = allWords.filter((word) => word.memoryStrength === 0)
@@ -444,10 +448,14 @@ export default function LearnPage({
                 setSetUpdatedAt(setData.updated_at)
             }
 
-            const { data: vocabData } = await supabase
-                .from("vocab_words")
-                .select("*")
-                .eq("set_id", id)
+            const vocabData = isReviewDueSet(id)
+                ? (await fetchDueWordsForCurrentUser()).words
+                : (
+                      await supabase
+                          .from("vocab_words")
+                          .select("*")
+                          .eq("set_id", id)
+                  ).data
 
             if (cancelled) {
                 return
@@ -476,7 +484,7 @@ export default function LearnPage({
             const progressByWordId = new Map(
                 ((progressData || []) as WordProgressRow[]).map((row) => [
                     row.word_id,
-                    row.repetitions || 0,
+                    row.repetitions ?? 0,
                 ])
             )
 
@@ -534,11 +542,11 @@ export default function LearnPage({
             const initializedWords = shuffleWords(vocabData || []).map((word) =>
                 normalizeWord({
                     ...word,
-                    memoryStrength: progressByWordId.get(word.id) || 0,
+                    memoryStrength: progressByWordId.get(word.id) ?? 0,
                     questionType: getRandomQuestionType(learningModes),
                     hasSeen: false,
                     status: getMemoryStatus(
-                        progressByWordId.get(word.id) || 0
+                        progressByWordId.get(word.id) ?? 0
                     ),
                 })
             )
@@ -745,7 +753,7 @@ export default function LearnPage({
             return
         }
 
-        const previousLevel = progress.repetitions || 0
+        const previousLevel = progress.repetitions ?? 0
         const nextReview = calculateSpacedRepetitionUpdate(
             previousLevel,
             correct
@@ -908,7 +916,11 @@ export default function LearnPage({
                 }
 
                 const nextStrength = isCorrect
-                    ? clampMemoryStrength(word.memoryStrength + 1)
+                    ? word.memoryStrength < 0
+                        ? 1
+                        : clampMemoryStrength(word.memoryStrength + 1)
+                    : word.memoryStrength <= 0
+                    ? -1
                     : clampMemoryStrength(word.memoryStrength - 2)
 
                 void updateSpacedRepetition(currentWord.id, isCorrect)
@@ -1222,7 +1234,7 @@ export default function LearnPage({
                         <div className="grid gap-4 md:grid-cols-4">
                             <div className="rounded-[28px] border border-emerald-200 bg-emerald-50/90 p-5 shadow-[0_0_40px_rgba(34,197,94,0.14)]">
                                 <p className="text-sm font-semibold text-emerald-700">
-                                    Các từ đã học
+                                    Các từ thuộc
                                 </p>
                                 <p className="mt-3 text-3xl font-black text-emerald-800">
                                     {masteredCount}
@@ -1259,7 +1271,7 @@ export default function LearnPage({
 
                         <div className="grid gap-6 lg:grid-cols-3">
                             {renderWordsPreview(
-                                "Từ đã học",
+                                "Từ đã thuộc",
                                 masteredWords,
                                 "mastered"
                             )}
@@ -1277,7 +1289,7 @@ export default function LearnPage({
 
                         <div className="grid gap-4 md:grid-cols-2">
                             <button
-                                onClick={() => router.push(`/document/${id}`)}
+                                onClick={() => router.push(`/vocabsets/${id}`)}
                                 className="h-14 rounded-2xl border border-gray-200 bg-white font-bold text-gray-800 transition hover:border-blue-200 hover:bg-blue-50"
                             >
                                 Quay lại
@@ -1348,7 +1360,7 @@ export default function LearnPage({
                                 <div className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-2 text-xs font-bold text-gray-500">
                                     <span className="inline-flex items-center gap-1.5">
                                         <span className="h-2.5 w-2.5 rounded-full bg-emerald-500" />
-                                        Đã học: {masteredCount}
+                                        Đã thuộc: {masteredCount}
                                     </span>
                                     <span className="inline-flex items-center gap-1.5">
                                         <span className="h-2.5 w-2.5 rounded-full bg-amber-400" />
