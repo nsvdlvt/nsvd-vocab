@@ -1197,8 +1197,8 @@ export default function LearnPage({
     }
 
     return (
-        <section className="min-h-screen bg-[#f5f9ff] p-5 md:p-10">
-            <div className="mx-auto max-w-6xl">
+        <section className="min-h-screen bg-[linear-gradient(180deg,#f7efe4_0%,#f5f9ff_100%)] p-4 md:p-8">
+            <div className="mx-auto max-w-5xl">
                 {summaryVisible ? (
                     <div className="space-y-8">
                         <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
@@ -1218,7 +1218,7 @@ export default function LearnPage({
                                 </p>
                             </div>
 
-                            <div className="rounded-3xl border border-gray-100 bg-white px-5 py-4 shadow-sm">
+                            <div className="rounded-[1.75rem] border border-[#eadccf] bg-white px-5 py-4 shadow-sm">
                                 <p className="text-sm font-semibold text-gray-500">
                                     Phần còn lại
                                 </p>
@@ -1290,7 +1290,7 @@ export default function LearnPage({
                         <div className="grid gap-4 md:grid-cols-2">
                             <button
                                 onClick={() => router.push(`/vocabsets/${id}`)}
-                                className="h-14 rounded-2xl border border-gray-200 bg-white font-bold text-gray-800 transition hover:border-blue-200 hover:bg-blue-50"
+                                className="h-14 rounded-2xl border border-[#e2d2bf] bg-white font-bold text-[#2d241d] transition hover:border-[#c96d35] hover:bg-[#fff8f1]"
                             >
                                 Quay lại
                             </button>
@@ -1298,7 +1298,7 @@ export default function LearnPage({
                             <button
                                 onClick={continueLearning}
                                 disabled={effectiveSessionCompleted}
-                                className="h-14 rounded-2xl bg-blue-600 font-bold text-white transition hover:bg-blue-700 disabled:cursor-not-allowed disabled:bg-gray-300"
+                                className="h-14 rounded-2xl bg-[#1f1a17] font-bold text-white transition hover:bg-[#2d241f] disabled:cursor-not-allowed disabled:bg-gray-300"
                             >
                                 {effectiveSessionCompleted ? "Đã hoàn thành" : "Học tiếp"}
                             </button>
@@ -1306,10 +1306,10 @@ export default function LearnPage({
                     </div>
                 ) : (
                     <>
-                        <div className="mb-8 grid grid-cols-[auto_1fr_auto] items-start gap-6">
+                        <div className="mb-6 flex flex-col gap-4 md:grid md:grid-cols-[auto_1fr_auto] md:items-start md:gap-6">
                             <button
                                 onClick={() => router.back()}
-                                className="flex items-center gap-2 rounded-2xl border border-gray-100 bg-white px-4 py-3 shadow-sm"
+                                className="inline-flex items-center gap-2 rounded-2xl border border-[#e9dccf] bg-white px-4 py-3 font-semibold text-[#2d241d] shadow-sm transition hover:bg-[#fffaf4]"
                             >
                                 <ArrowLeft className="h-5 w-5" />
                                 <span className="font-semibold">
@@ -1318,12 +1318,12 @@ export default function LearnPage({
                             </button>
 
                             <div className="flex justify-center pt-1">
-                                <span className="rounded-full bg-orange-100 px-5 py-2 font-bold text-orange-600">
+                                <span className="rounded-full bg-[#fff1e5] px-5 py-2 font-bold text-[#c96d35]">
                                     {streak} streak
                                 </span>
                             </div>
 
-                            <div className="min-w-[220px] rounded-2xl bg-white px-4 py-4 shadow-sm md:min-w-[360px]">
+                            <div className="min-w-[220px] rounded-2xl border border-[#eadccf] bg-white px-4 py-4 shadow-sm md:min-w-[320px]">
                                 <p className="mb-3 text-xs font-semibold uppercase tracking-[0.18em] text-gray-400">
                                     Section
                                 </p>
@@ -1332,7 +1332,7 @@ export default function LearnPage({
                         </div>
 
                         <div className="mx-auto mb-6 max-w-5xl">
-                            <div className="mb-8 w-full">
+                            <div className="mb-6 w-full rounded-[2rem] border border-[#eadccf] bg-white p-5 shadow-sm">
                                 <div className="mb-3 flex items-center justify-between">
                                     <div>
                                         <p className="text-sm font-semibold text-gray-500">
@@ -1344,9 +1344,9 @@ export default function LearnPage({
                                     </div>
                                 </div>
 
-                                <div className="h-4 w-full overflow-hidden rounded-full border border-blue-100 bg-slate-200/70">
+                                <div className="h-4 w-full overflow-hidden rounded-full bg-[#eee2d6]">
                                     <div
-                                        className="h-full rounded-full bg-blue-600 transition-all duration-500"
+                                        className="h-full rounded-full bg-[linear-gradient(90deg,#d96d32_0%,#f0be64_100%)] transition-all duration-500"
                                         style={{
                                             width: `${currentSectionSize
                                                 ? ((questionIndexInSection + (showAnswer ? 1 : 0)) /
@@ -1374,9 +1374,9 @@ export default function LearnPage({
                             </div>
                         </div>
 
-                        <div className="mx-auto max-w-5xl rounded-[40px] border border-gray-100 bg-white p-7 shadow-[0_20px_60px_rgba(59,130,246,0.08)] md:p-8">
-                            <div className="mb-5 flex items-center justify-between">
-                                <div className="rounded-full bg-blue-50 px-4 py-2 text-xs font-bold uppercase tracking-[0.2em] text-blue-700">
+                        <div className="mx-auto max-w-5xl rounded-[2.25rem] border border-[#eadccf] bg-white p-6 shadow-[0_24px_60px_rgba(79,56,31,0.08)] md:p-8">
+                            <div className="mb-5 flex flex-wrap items-center justify-between gap-3">
+                                <div className="rounded-full bg-[#fff1e5] px-4 py-2 text-xs font-bold uppercase tracking-[0.2em] text-[#b45309]">
                                     {currentWord.questionType === "reverse"
                                         ? "Meaning -> Word"
                                         : "Word -> Meaning"}
@@ -1467,7 +1467,7 @@ export default function LearnPage({
                                     : currentWord.word}
                             </h2>
 
-                            <div className="mt-10 grid grid-cols-2 gap-4">
+                            <div className="mt-8 grid grid-cols-1 gap-3 sm:grid-cols-2 sm:gap-4">
                                 {options.map((option, index) => {
                                     const isCorrectOption = option === correctAnswer
                                     const isSelected = selectedAnswer === option
@@ -1476,12 +1476,12 @@ export default function LearnPage({
                                         <button
                                             key={`${option}-${index}`}
                                             onClick={() => handleAnswer(option)}
-                                            className={`min-h-[84px] w-full rounded-[28px] border-2 border-gray-100 p-5 text-left text-base font-bold leading-snug shadow-[0_1px_0_rgba(255,255,255,0.7)_inset] transition-all duration-300 active:scale-[0.98] ${
+                                            className={`min-h-[76px] w-full rounded-[1.6rem] border p-5 text-left text-base font-bold leading-snug transition-all duration-300 active:scale-[0.98] ${
                                                 showAnswer && isCorrectOption
                                                     ? "border-green-500 bg-green-50"
                                                     : showAnswer && isSelected && !isCorrectOption
                                                     ? "border-red-500 bg-red-50"
-                                                    : "hover:border-blue-200 hover:bg-blue-50/70"
+                                                    : "border-[#eadccf] bg-[#fffdfa] hover:border-[#d7b89a] hover:bg-[#fff8f1]"
                                             }`}
                                         >
                                             {option}
@@ -1495,14 +1495,14 @@ export default function LearnPage({
                                     <div className="mt-4 flex justify-center">
                                         <button
                                             onClick={finishQuestionStep}
-                                            className="h-11 rounded-2xl bg-blue-600 px-7 font-bold text-white shadow-lg transition hover:bg-blue-700"
+                                            className="h-11 rounded-2xl bg-[#1f1a17] px-7 font-bold text-white transition hover:bg-[#2d241f]"
                                         >
                                             Tiếp tục
                                         </button>
                                     </div>
 
                                     <div
-                                        className={`relative mt-6 rounded-[28px] border p-5 ${
+                                        className={`relative mt-6 rounded-[1.75rem] border p-5 ${
                                             selectedAnswer === correctAnswer
                                                 ? "border-green-300 bg-green-50"
                                                 : "border-red-300 bg-red-50"
@@ -1539,7 +1539,7 @@ export default function LearnPage({
                                             </div>
                                         </div>
 
-                                        <div className="mt-7 rounded-[24px] bg-white/70 p-5">
+                                        <div className="mt-7 rounded-[1.5rem] bg-white/80 p-5">
                                             <div className="flex items-start justify-between gap-4">
                                                 <div>
                                                     <p className="text-sm font-bold text-gray-400">
@@ -1618,7 +1618,7 @@ export default function LearnPage({
                             ) : (
                                 <button
                                     onClick={handleDontKnow}
-                                    className="mt-8 h-16 w-full rounded-3xl bg-gray-100 text-lg font-bold transition hover:bg-gray-200"
+                                    className="mt-8 h-14 w-full rounded-2xl border border-[#e2d2bf] bg-[#fff8f1] text-lg font-bold text-[#3d3026] transition hover:bg-[#f7efe5]"
                                 >
                                     Tôi không biết
                                 </button>
@@ -1680,10 +1680,10 @@ export default function LearnPage({
 
             {settingsVisible ? (
                 <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-5 backdrop-blur-sm">
-                    <div className="relative w-full max-w-2xl rounded-[36px] bg-white p-7 shadow-[0_20px_80px_rgba(0,0,0,0.15)]">
+                    <div className="relative w-full max-w-2xl rounded-[2rem] border border-[#eadccf] bg-white p-6 shadow-[0_24px_60px_rgba(79,56,31,0.12)] md:p-7">
                         <button
                             onClick={() => setSettingsVisible(false)}
-                            className="absolute right-5 top-5 flex h-10 w-10 items-center justify-center rounded-xl transition hover:bg-gray-100"
+                            className="absolute right-5 top-5 flex h-10 w-10 items-center justify-center rounded-xl transition hover:bg-[#fff8f1]"
                         >
                             <X className="h-5 w-5 text-gray-500" />
                         </button>
@@ -1700,7 +1700,7 @@ export default function LearnPage({
                                 Chế độ học
                             </p>
 
-                            <div className="space-y-3">
+                            <div className="grid gap-3">
                                 {[
                                     {
                                         key: "term",
@@ -1735,12 +1735,12 @@ export default function LearnPage({
                                                       ]
                                             })
                                         }}
-                                        className={`w-full rounded-2xl border-2 p-4 text-left font-bold transition ${
+                                        className={`w-full rounded-[1.35rem] border p-4 text-left font-bold transition ${
                                             tempLearningModes.includes(
                                                 mode.key as "term" | "definition"
                                             )
-                                                ? "border-blue-500 bg-blue-50 text-blue-700"
-                                                : "border-gray-100 hover:border-gray-200"
+                                                ? "border-[#b45309] bg-[#fff1e5] text-[#8a470c]"
+                                                : "border-[#eadccf] bg-[#fffdfa] text-[#2d241d] hover:bg-[#fff8f1]"
                                         }`}
                                     >
                                         {mode.label}
@@ -1758,17 +1758,17 @@ export default function LearnPage({
                                 onClick={() =>
                                     setTempAutoContinue(!tempAutoContinue)
                                 }
-                                className={`w-full rounded-2xl border-2 p-4 text-left font-bold transition ${
+                                className={`w-full rounded-[1.35rem] border p-4 text-left font-bold transition ${
                                     tempAutoContinue
-                                        ? "border-blue-500 bg-blue-50 text-blue-700"
-                                        : "border-gray-100 hover:border-gray-200"
+                                        ? "border-[#b45309] bg-[#fff1e5] text-[#8a470c]"
+                                        : "border-[#eadccf] bg-[#fffdfa] text-[#2d241d] hover:bg-[#fff8f1]"
                                 }`}
                             >
                                 Tự động tiếp tục khi trả lời đúng
                             </button>
                         </div>
 
-                        <div className="mt-10 grid grid-cols-2 gap-4">
+                        <div className="mt-10 grid gap-3 sm:grid-cols-2">
                             <button
                                 onClick={resetLearningProgress}
                                 className="h-14 rounded-2xl bg-red-50 font-bold text-red-600 transition hover:bg-red-100"
@@ -1778,7 +1778,7 @@ export default function LearnPage({
 
                             <button
                                 onClick={applyLearningSettings}
-                                className="h-14 rounded-2xl bg-blue-600 font-bold text-white transition hover:bg-blue-700"
+                                className="h-14 rounded-2xl bg-[#1f1a17] font-bold text-white transition hover:bg-[#2d241f]"
                             >
                                 Áp dụng
                             </button>

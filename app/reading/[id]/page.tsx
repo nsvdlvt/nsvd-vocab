@@ -11,6 +11,7 @@ import {
 } from "lucide-react"
 
 import { supabase } from "@/lib/supabase"
+import LoadingScreen from "@/components/ui/loading-screen"
 import {
   fetchDueWordsForCurrentUser,
   isReviewDueSet,
@@ -506,9 +507,10 @@ export default function ReadingPage({
 
   if (loading) {
     return (
-      <main className="flex min-h-screen items-center justify-center bg-[#f7efe4]">
-        <Loader2 className="h-10 w-10 animate-spin text-[#b45309]" />
-      </main>
+      <LoadingScreen
+        title="Đang tải bài đọc hiểu"
+        subtitle="Chuẩn bị đoạn đọc và câu hỏi phù hợp..."
+      />
     )
   }
 

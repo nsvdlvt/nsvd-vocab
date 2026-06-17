@@ -4,6 +4,7 @@ import { useEffect, useState } from "react"
 import { useRouter } from "next/navigation"
 import { ArrowLeft, Check, Volume2, X } from "lucide-react"
 import { supabase } from "@/lib/supabase"
+import LoadingScreen from "@/components/ui/loading-screen"
 import {
   MASTERED_LEVEL,
   buildMasteryTimestampUpdate,
@@ -272,14 +273,10 @@ export default function ReviewSession({ setId }: ReviewSessionProps) {
 
   if (loading) {
     return (
-      <section className="dashboard-shell min-h-screen flex items-center justify-center">
-        <div className="dashboard-loading">
-          <div className="dashboard-spinner" />
-          <p className="dashboard-loading-text">
-            {isReviewAll ? "Đang tải ôn tập tổng hợp" : "Đang tải học ngắt quãng"}
-          </p>
-        </div>
-      </section>
+      <LoadingScreen
+        title={isReviewAll ? "Đang tải ôn tập tổng hợp" : "Đang tải học ngắt quãng"}
+        subtitle="Sắp xếp lại các thẻ đến hạn cho phiên học này..."
+      />
     )
   }
 

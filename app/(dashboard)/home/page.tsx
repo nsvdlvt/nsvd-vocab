@@ -352,7 +352,7 @@ export default function HomePage() {
             <div className="flex items-start justify-between gap-4">
               <div>
                 <p className="text-xs uppercase tracking-[0.24em] text-[#d6b396]">
-                  Học ngắt quãng
+                  Học ngắt quãng (SRS)
                 </p>
                 <h2 className="mt-2 text-2xl font-black">Dự báo ôn tập 7 ngày tới</h2>
               </div>

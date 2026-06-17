@@ -17,6 +17,7 @@ import {
   Sparkles,
 } from "lucide-react"
 import { supabase } from "@/lib/supabase"
+import LoadingScreen from "@/components/ui/loading-screen"
 import { fetchDueWordsForCurrentUser, REVIEW_DUE_SET_ID } from "@/lib/review-due-words"
 import ReviewSession from "@/components/review/review-session"
 
@@ -144,12 +145,10 @@ export default function ReviewPage() {
 
   if (loading) {
     return (
-      <section className="dashboard-shell min-h-[calc(100vh-5rem)]">
-        <div className="dashboard-loading">
-          <div className="dashboard-spinner" />
-          <p className="dashboard-loading-text">Đang tải bộ ôn tập</p>
-        </div>
-      </section>
+      <LoadingScreen
+        title="Đang tải bộ ôn tập"
+        subtitle="Gom các từ đến hạn hôm nay cho bạn..."
+      />
     )
   }
 

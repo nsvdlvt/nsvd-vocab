@@ -10,6 +10,7 @@ import {
   X,
 } from "lucide-react"
 import { supabase } from "@/lib/supabase"
+import LoadingScreen from "@/components/ui/loading-screen"
 import {
   fetchDueWordsForCurrentUser,
   isReviewDueSet,
@@ -355,12 +356,10 @@ export default function ListenPage({
 
   if (loading) {
     return (
-      <section className="dashboard-shell min-h-screen">
-        <div className="dashboard-loading">
-          <div className="dashboard-spinner" />
-          <p className="dashboard-loading-text">Đang tải bài nghe chép</p>
-        </div>
-      </section>
+      <LoadingScreen
+        title="Đang tải bài nghe chép"
+        subtitle="Chuẩn bị âm thanh và câu hỏi luyện nghe..."
+      />
     )
   }
 
