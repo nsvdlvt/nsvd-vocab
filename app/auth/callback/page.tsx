@@ -17,6 +17,8 @@ function AuthCallbackContent() {
   const searchParams = useSearchParams()
 
   useEffect(() => {
+    let isActive = true
+
     const completeLogin = async () => {
       const nextPath = getSafeRedirectPath(searchParams.get("next"))
       const code = searchParams.get("code")
@@ -25,15 +27,55 @@ function AuthCallbackContent() {
         const { error } = await supabase.auth.exchangeCodeForSession(code)
 
         if (error) {
-          router.replace(`/login?redirectTo=${encodeURIComponent(nextPath)}`)
+          if (isActive) {
+            router.replace(`/login?redirectTo=${encodeURIComponent(nextPath)}`)
+          }
           return
         }
       }
 
-      router.replace(nextPath)
+      const {
+        data: { session },
+      } = await supabase.auth.getSession()
+
+      if (session) {
+        if (isActive) {
+          router.replace(nextPath)
+        }
+        return
+      }
+
+      const {
+        data: { subscription },
+      } = supabase.auth.onAuthStateChange((event, session) => {
+        if (!isActive || !session) {
+          return
+        }
+
+        if (
+          event === "SIGNED_IN" ||
+          event === "TOKEN_REFRESHED" ||
+          event === "INITIAL_SESSION"
+        ) {
+          subscription.unsubscribe()
+          router.replace(nextPath)
+        }
+      })
+
+      window.setTimeout(() => {
+        subscription.unsubscribe()
+
+        if (isActive) {
+          router.replace(`/login?redirectTo=${encodeURIComponent(nextPath)}`)
+        }
+      }, 4000)
     }
 
     void completeLogin()
+
+    return () => {
+      isActive = false
+    }
   }, [router, searchParams])
 
   return (

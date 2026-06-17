@@ -18,6 +18,7 @@ import {
     buildMasteryTimestampUpdate,
     calculateSpacedRepetitionUpdate,
 } from "@/lib/spaced-repetition"
+import { toUtcIsoString } from "@/lib/time"
 
 type LearningWord = {
     id: string
@@ -749,7 +750,7 @@ export default function LearnPage({
             previousLevel,
             correct
         )
-        const now = new Date()
+        const now = toUtcIsoString()
 
         await supabase
             .from("user_word_progress")
@@ -769,7 +770,7 @@ export default function LearnPage({
                 ...buildMasteryTimestampUpdate(
                     previousLevel,
                     nextReview.level,
-                    now
+                    new Date(now)
                 ),
             })
             .eq("id", progress.id)

@@ -19,6 +19,7 @@ import { GeminiAssistant } from "@/components/dashboard/gemini-assistant"
 import { supabase } from "@/lib/supabase"
 import { getEffectiveReviewDate, startOfDay } from "@/lib/review-due"
 import { MASTERED_LEVEL } from "@/lib/spaced-repetition"
+import { formatRelativeStudyTime, getLatestTimestamp } from "@/lib/time"
 
 type Role = "ADMIN" | "PREMIUM" | "MEMBER" | string
 
@@ -77,14 +78,7 @@ type LastStudyProgressRow = {
   updated_at?: string | null
 }
 
-const latestDate = (...values: (string | null | undefined)[]) => {
-  const latest = values
-    .map((value) => (value ? new Date(value).getTime() : Number.NaN))
-    .filter((value) => !Number.isNaN(value))
-    .sort((a, b) => b - a)[0]
-
-  return latest ? new Date(latest).toISOString() : null
-}
+const latestDate = getLatestTimestamp
 
 const getRoleBadgeClass = (role: Role) => {
   if (role === "ADMIN") return "bg-[#7e2a26] text-white"
@@ -92,26 +86,7 @@ const getRoleBadgeClass = (role: Role) => {
   return "bg-[#efe1cf] text-[#7b5d44]"
 }
 
-const formatRelativeTime = (value?: string | null) => {
-  if (!value) return "Chưa học lần nào"
-
-  const date = new Date(value)
-  const diff = Date.now() - date.getTime()
-
-  if (Number.isNaN(date.getTime())) return "Chưa học lần nào"
-
-  const minutes = Math.floor(diff / 60000)
-  if (minutes < 1) return "Vừa xong"
-  if (minutes < 60) return `${minutes} phút trước`
-
-  const hours = Math.floor(minutes / 60)
-  if (hours < 24) return `${hours} giờ trước`
-
-  const days = Math.floor(hours / 24)
-  if (days < 30) return `${days} ngày trước`
-
-  return date.toLocaleDateString("vi-VN")
-}
+const formatRelativeTime = formatRelativeStudyTime
 
 const formatShortDayLabel = (date: Date, isToday: boolean) => {
   if (isToday) return "H.nay"

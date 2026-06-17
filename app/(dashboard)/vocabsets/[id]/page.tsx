@@ -1,17 +1,23 @@
 "use client"
 
-import { useEffect, useState } from "react"
+import { use, useEffect, useMemo, useState } from "react"
 import { useRouter } from "next/navigation"
-import { supabase } from "@/lib/supabase"
 import {
-  Layers3,
-  BookOpen,
-  PenSquare,
-  Headphones,
-  ClipboardCheck,
   ArrowLeft,
+  BadgeCheck,
+  BookOpen,
+  BookText,
   CalendarDays,
+  ClipboardCheck,
+  Headphones,
+  Languages,
+  Layers3,
+  MessageSquareQuote,
+  PenSquare,
+  ScanSearch,
+  Sparkles,
 } from "lucide-react"
+import { supabase } from "@/lib/supabase"
 
 type WordType = {
   id: string
@@ -23,7 +29,7 @@ type WordType = {
   synonyms: string
   audio_url: string
   starred?: boolean
-memoryStrength?: number | null
+  memoryStrength?: number | null
 }
 
 type SessionWordProgress = {
@@ -35,7 +41,103 @@ type SessionRow = {
   all_words?: SessionWordProgress[] | null
 }
 
-import { use } from "react"
+
+type LearningMode = {
+  title: string
+  href: string
+  icon: typeof Layers3
+  iconClassName: string
+}
+
+type WordGroup = {
+  title: string
+  icon: typeof Layers3
+  colorClassName: string
+  words: WordType[]
+}
+
+const learningModes = (id: string): LearningMode[] => [
+  {
+    title: "Flashcard",
+    href: `/flashcard/${id}`,
+    icon: Layers3,
+    iconClassName: "bg-[#e8f1ff] text-[#2563eb]",
+  },
+  {
+    title: "Học",
+    href: `/learn/${id}`,
+    icon: BookOpen,
+    iconClassName: "bg-[#eefaf2] text-[#1f8f55]",
+  },
+  {
+    title: "Điền từ",
+    href: `/write/${id}`,
+    icon: PenSquare,
+    iconClassName: "bg-[#fff1e8] text-[#d66a2f]",
+  },
+  {
+    title: "Nghe chép",
+    href: `/listen/${id}`,
+    icon: Headphones,
+    iconClassName: "bg-[#f3edff] text-[#7c4dff]",
+  },
+  {
+    title: "Kiểm tra",
+    href: `/review/${id}`,
+    icon: ClipboardCheck,
+    iconClassName: "bg-[#fff6d8] text-[#a87300]",
+  },
+  {
+    title: "Ngữ pháp",
+    href: `/grammar/${id}`,
+    icon: Languages,
+    iconClassName: "bg-[#e8fbf8] text-[#0f8b7b]",
+  },
+  {
+    title: "Đọc hiểu",
+    href: `/reading/${id}`,
+    icon: ScanSearch,
+    iconClassName: "bg-[#fbeee8] text-[#b45309]",
+  },
+  {
+    title: "Speaking",
+    href: `/speaking/${id}`,
+    icon: MessageSquareQuote,
+    iconClassName: "bg-[#edf2ff] text-[#4338ca]",
+  },
+]
+
+const getWordGroups = (words: WordType[]): WordGroup[] => [
+  {
+    title: "Từ đã thuộc",
+    icon: BadgeCheck,
+    colorClassName: "bg-[#e9f8ef]",
+    words: words.filter((word) => word.memoryStrength === 4),
+  },
+  {
+    title: "Từ đang học",
+    icon: Sparkles,
+    colorClassName: "bg-[#fff4de]",
+    words: words.filter(
+      (word) =>
+        typeof word.memoryStrength === "number" &&
+        word.memoryStrength > 0 &&
+        word.memoryStrength < 4
+    ),
+  },
+  {
+    title: "Từ chưa học",
+    icon: BookText,
+    colorClassName: "bg-[#ebf4ff]",
+    words: words.filter(
+      (word) =>
+        word.memoryStrength === null ||
+        word.memoryStrength === undefined ||
+        word.memoryStrength === 0
+    ),
+  },
+]
+
 
 export default function SetPage({
   params,
@@ -46,654 +148,220 @@ export default function SetPage({
 }) {
   const router = useRouter()
   const { id } = use(params)
-  const [words, setWords] =
-    useState<WordType[]>([])
 
-  const [title, setTitle] =
-    useState("")
-  const [description, setDescription] =
-    useState("")
-  const [author, setAuthor] =
-    useState("")
-  const [authorAvatar, setAuthorAvatar] =
-    useState("")
-  const [loading, setLoading] =
-    useState(true)
-  const [
-    previewModal,
-    setPreviewModal
-  ] = useState<{
-    title: string
-    words: WordType[]
-  } | null>(null)
+  const [words, setWords] = useState<WordType[]>([])
+  const [title, setTitle] = useState("")
+  const [author, setAuthor] = useState("")
+  const [authorAvatar, setAuthorAvatar] = useState("")
+  const [loading, setLoading] = useState(true)
+
   useEffect(() => {
     const loadSet = async () => {
-      const { data: setData } =
-        await supabase
-          .from("vocab_sets")
-          .select("*")
-          .eq("id", id)
-          .single()
+      setLoading(true)
+
+      const { data: setData } = await supabase
+        .from("vocab_sets")
+        .select("title, author_name, author_avatar")
+        .eq("id", id)
+        .single()
 
       if (setData) {
-        setTitle(setData.title)
-        setDescription(
-          setData.description || ""
-        )
-        setAuthor(
-          setData.author_name || ""
-        )
-        setAuthorAvatar(
-          setData.author_avatar || ""
-        )
+        setTitle(setData.title || "")
+        setAuthor(setData.author_name || "")
+        setAuthorAvatar(setData.author_avatar || "")
       }
 
-      const { data } = await supabase.from("vocab_words").select("*").eq("set_id", id)
+      const { data: wordRows } = await supabase
+        .from("vocab_words")
+        .select("*")
+        .eq("set_id", id)
 
-      let merged: WordType[] = data || []
+      let mergedWords: WordType[] = (wordRows || []) as WordType[]
 
       try {
-        const { data: userData } = await supabase.auth.getUser()
-
-        const user = userData.user
+        const {
+          data: { user },
+        } = await supabase.auth.getUser()
 
         if (user) {
           const { data: session } = await supabase
             .from("learning_sessions")
-            .select("*")
+            .select("all_words")
             .eq("user_id", user.id)
             .eq("set_id", id)
             .maybeSingle()
 
-          const allWords = ((session as SessionRow | null)?.all_words || [])
-
-          const map = new Map<string, number>()
-          allWords.forEach((w) => {
-            const n = Number(w.memoryStrength || 0)
-            if (w.id) map.set(w.id, Number.isNaN(n) ? 0 : n)
+          const progressMap = new Map<string, number>()
+          ;(((session as SessionRow | null)?.all_words || []) as SessionWordProgress[]).forEach((item) => {
+            if (!item.id) return
+            const strength = Number(item.memoryStrength || 0)
+            progressMap.set(item.id, Number.isNaN(strength) ? 0 : strength)
           })
 
-          merged = (data || []).map((w: WordType) => ({
-            ...w,
-            memoryStrength: map.has(w.id) ? map.get(w.id) : w.memoryStrength ?? null,
+          mergedWords = mergedWords.map((word) => ({
+            ...word,
+            memoryStrength: progressMap.has(word.id)
+              ? progressMap.get(word.id)
+              : word.memoryStrength ?? null,
           }))
         }
       } catch {
-        // ignore session merge errors and fallback to vocab_words
+        // Keep the plain word list if session data cannot be merged.
       }
 
-      setWords(merged)
+      setWords(mergedWords)
       setLoading(false)
     }
 
-    loadSet()
+    void loadSet()
   }, [id])
-  useEffect(() => {
 
-  const handleEsc = (
-    e: KeyboardEvent
-  ) => {
 
-    if (
-      e.key === "Escape"
-    ) {
+  const groupedWords = useMemo(() => getWordGroups(words), [words])
+  const modes = useMemo(() => learningModes(id), [id])
 
-      setPreviewModal(null)
-    }
-  }
-
-  window.addEventListener(
-    "keydown",
-    handleEsc
-  )
-
-  return () => {
-
-    window.removeEventListener(
-      "keydown",
-      handleEsc
-    )
-  }
-
-}, [])
-  const renderCompactSection = (
-    title: string,
-    words: WordType[],
-    icon: string,
-    color: string
-  ) => {
-    if (words.length === 0) return null
-
-    return (
-      <div className="bg-white rounded-[32px] border border-gray-100 shadow-sm p-6">
-
-        {/* HEADER */}
-        <div className="flex items-center justify-between mb-5">
-
-          <div className="flex items-center gap-3">
-
-            <div className={`w-12 h-12 rounded-2xl flex items-center justify-center text-2xl ${color}`}>
-              {icon}
-            </div>
-
-            <div>
-              <h3 className="text-2xl font-black">{title}</h3>
-              <p className="text-gray-400 font-medium text-sm">{words.length} từ</p>
-            </div>
-
-          </div>
-
-          {words.length > 3 && (
-            <button
-              onClick={() => setPreviewModal({ title, words })}
-              className="px-4 py-2 rounded-xl bg-blue-50 hover:bg-blue-100 text-blue-600 font-bold transition"
-            >
-              Xem thêm →
-            </button>
-          )}
-
-        </div>
-
-        {/* WORDS */}
-        <div className="space-y-3">
-
-          {words.slice(0, 3).map((word) => (
-
-            <div key={word.id} className="bg-[#f5f9ff] rounded-2xl p-4 border border-blue-50">
-
-              <div className="flex items-start justify-between gap-3">
-
-                <div>
-                  <div className="flex items-center gap-3">
-                    <h4 className="font-black text-lg">{word.word}</h4>
-                    {word.ipa && <span className="text-sm text-gray-400">{word.ipa}</span>}
-                  </div>
-
-                  <p className="text-gray-500 mt-1">{word.meaning}</p>
-
-                  {word.example && (
-                    <p className="text-gray-400 italic mt-2 text-sm">{word.example}</p>
-                  )}
-                </div>
-
-                {word.word_type && (
-                  <span className="px-3 py-1 rounded-full bg-white text-xs font-bold uppercase border border-gray-100">
-                    {word.word_type}
-                  </span>
-                )}
-
-              </div>
-
-            </div>
-
-          ))}
-
-        </div>
-
-      </div>
-    )
-  }
   if (loading) {
     return (
-      <div className="flex items-center justify-center min-h-[70vh]">
-        <div className="w-16 h-16 border-4 border-blue-200 border-t-blue-600 rounded-full animate-spin" />
+      <div className="flex min-h-[70vh] items-center justify-center">
+        <div className="h-16 w-16 animate-spin rounded-full border-4 border-[#d7e8ff] border-t-[#2563eb]" />
       </div>
     )
   }
 
   return (
-    <section className="w-full p-4 md:p-8 pb-28">
-
-      {/* TOP BAR */}
-      <div className="flex items-center justify-between mb-6">
-
-        {/* BACK */}
+    <section className="w-full px-4 pb-28 pt-4 md:px-8">
+      <div className="mb-6 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <button
           onClick={() => router.back()}
-          className="flex items-center gap-2 bg-white border border-gray-100 hover:bg-gray-50 transition rounded-2xl px-4 py-3 shadow-sm"
+          className="inline-flex items-center gap-2 rounded-2xl border border-[#e9dccf] bg-white px-4 py-3 font-semibold text-[#2d241d] shadow-sm transition hover:bg-[#fffaf4]"
         >
-          <ArrowLeft className="w-5 h-5" />
-
-          <span className="font-semibold">
-            Quay lại
-          </span>
+          <ArrowLeft className="h-5 w-5" />
+          Quay lại
         </button>
 
-        {/* SPACED REP */}
         <button
-          onClick={() =>
-            router.push(
-              `/review/${id}`
-            )
-          }
-          className="flex items-center gap-2 bg-blue-600 text-white hover:bg-blue-700 transition rounded-2xl px-4 py-3 shadow-lg shadow-blue-200"
+          onClick={() => router.push(`/review/${id}`)}
+          className="inline-flex items-center gap-2 rounded-2xl bg-[#2563eb] px-4 py-3 font-semibold text-white shadow-lg shadow-blue-200 transition hover:bg-[#1f57d6]"
         >
-          <CalendarDays className="w-5 h-5" />
-
-          <span className="font-semibold">
-            Học ngắt quãng
-          </span>
+          <CalendarDays className="h-5 w-5" />
+          Học ngắt quãng
         </button>
-
       </div>
-      {/* TOP */}
-      <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-5 mb-10">
 
-        {/* LEFT */}
+      <div className="mb-10 flex flex-col gap-5 lg:flex-row lg:items-end lg:justify-between">
         <div>
-          <p className="text-gray-500 text-lg">
-            Vocabulary set ✨
+          <p className="text-sm font-semibold uppercase tracking-[0.22em] text-[#9c6f49]">
+            Vocabulary set
           </p>
-
-          <h1 className="text-4xl md:text-5xl font-black mt-2 leading-none break-words">
+          <h1 className="mt-3 max-w-4xl break-words text-4xl font-black tracking-[-0.04em] text-[#211914] md:text-5xl">
             {title}
           </h1>
-
-          {description && (
-
-            <p className="text-gray-500 text-lg mt-4 max-w-3xl leading-relaxed">
-              {description}
-            </p>
-
-          )}
         </div>
 
-        {/* AUTHOR */}
         {author && (
-          <div className="bg-gradient-to-br from-white to-blue-50 border border-blue-100 shadow-sm rounded-3xl px-5 py-4 w-full md:w-auto md:min-w-[220px]">
-
-            <p className="text-gray-400 text-sm font-semibold">
-              Tác giả
-            </p>
-
-            <div className="flex items-center gap-3 mt-2">
-
-              <div className="w-12 h-12 rounded-2xl overflow-hidden bg-blue-100 flex items-center justify-center">
-
+          <div className="w-full rounded-[2rem] border border-[#eadccf] bg-[linear-gradient(180deg,#fffdf9_0%,#fff6ec_100%)] p-5 shadow-sm lg:w-auto lg:min-w-[240px]">
+            <p className="text-sm font-semibold text-[#9a7a5c]">Tác giả</p>
+            <div className="mt-3 flex items-center gap-3">
+              <div className="flex h-12 w-12 items-center justify-center overflow-hidden rounded-2xl bg-[#e9f1ff] text-lg font-black text-[#2563eb]">
                 {authorAvatar ? (
-
                   <img
                     src={authorAvatar}
                     alt={author}
-                    className="w-full h-full object-cover"
+                    className="h-full w-full object-cover"
                   />
-
                 ) : (
-
-                  <span className="font-black text-lg text-blue-600">
-                    {author.charAt(0)}
-                  </span>
-
+                  author.charAt(0).toUpperCase()
                 )}
-
               </div>
-
-              <div>
-                <h3 className="font-black text-lg leading-tight">
-                  {author}
-                </h3>
-
-                <p className="text-gray-400 text-sm">
-                  Member
-                </p>
-              </div>
-
+              <h2 className="text-lg font-black text-[#221a16]">{author}</h2>
             </div>
           </div>
         )}
-
       </div>
-      {/* LEARNING MODES */}
+
       <div className="mb-10">
-
-        <h2 className="text-3xl font-black mb-5">
-          Chế độ học 😎🔥
-        </h2>
-
-        <div
-          className="
-    grid
-    gap-3
-    md:gap-4
-    w-full
-  "
-          style={{
-            gridTemplateColumns:
-              "repeat(auto-fit,minmax(180px,1fr))"
-          }}
-        >
-
-          {/* FLASHCARD */}
-          <button
-            onClick={() =>
-              router.push(
-                `/flashcard/${id}`
-              )
-            }
-            className="w-full max-w-full min-w-0 bg-white border border-gray-100 hover:-translate-y-1 hover:shadow-xl transition-all rounded-[24px] p-4 text-left min-h-[140px] md:min-h-[180px]"
-          >
-
-            <div className="w-12 h-12 md:w-14 md:h-14 rounded-2xl bg-blue-50 flex items-center justify-center mb-4">
-              <Layers3 className="w-7 h-7 text-blue-600" />
-            </div>
-
-            <h3 className="font-black text-sm md:text-lg">
-              Flashcard
-            </h3>
-
-            <p className="text-gray-500 text-sm mt-1 hidden md:block">
-              Lật thẻ học từ
-            </p>
-          </button>
-
-          {/* LEARN */}
-          <button
-            onClick={() =>
-              router.push(
-                `/learn/${id}`
-              )
-            }
-            className="w-full max-w-full min-w-0 bg-white border border-gray-100 hover:-translate-y-1 hover:shadow-xl transition-all rounded-[24px] p-4 text-left min-h-[140px] md:min-h-[180px]"
-          >
-            <div className="w-12 h-12 md:w-14 md:h-14 rounded-2xl bg-blue-50 flex items-center justify-center mb-4">
-              <BookOpen className="w-7 h-7 text-blue-600" />
-            </div>
-
-            <h3 className="font-black text-sm md:text-lg">
-              Học
-            </h3>
-
-            <p className="text-gray-500 text-sm mt-1 hidden md:block">
-              Học từng bước
-            </p>
-          </button>
-
-          {/* FILL */}
-          <button
-          onClick={() =>
-              router.push(
-                `/write/${id}`
-              )
-            }
-            className="w-full max-w-full min-w-0 bg-white border border-gray-100 hover:-translate-y-1 hover:shadow-xl transition-all rounded-[24px] p-4 text-left min-h-[140px] md:min-h-[180px]"
-          >
-            <div className="w-12 h-12 md:w-14 md:h-14 rounded-2xl bg-blue-50 flex items-center justify-center mb-4">
-              <PenSquare className="w-7 h-7 text-blue-600" />
-            </div>
-
-            <h3 className="font-black text-sm md:text-lg">
-              Điền từ
-            </h3>
-
-            <p className="text-gray-500 text-sm mt-1 hidden md:block">
-              Điền từ còn thiếu
-            </p>
-          </button>
-
-          {/* LISTEN */}
-          <button
-            onClick={() =>
-              router.push(
-                `/listen/${id}`
-              )
-            }
-            className="w-full max-w-full min-w-0 bg-white border border-gray-100 hover:-translate-y-1 hover:shadow-xl transition-all rounded-[24px] p-4 text-left min-h-[140px] md:min-h-[180px]"
-          >
-            <div className="w-12 h-12 md:w-14 md:h-14 rounded-2xl bg-blue-50 flex items-center justify-center mb-4">
-              <Headphones className="w-7 h-7 text-blue-600" />
-            </div>
-
-            <h3 className="font-black text-sm md:text-lg">
-              Nghe chép
-            </h3>
-
-            <p className="text-gray-500 text-sm mt-1 hidden md:block">
-              Nghe và gõ lại
-            </p>
-          </button>
-
-          {/* TEST */}
-          <button
-            onClick={() =>
-              router.push(
-                `/review/${id}`
-              )
-            }
-            className="w-full max-w-full min-w-0 bg-white border border-gray-100 hover:-translate-y-1 hover:shadow-xl transition-all rounded-[24px] p-4 text-left min-h-[140px] md:min-h-[180px]"
-          >
-            <div className="w-12 h-12 md:w-14 md:h-14 rounded-2xl bg-blue-50 flex items-center justify-center mb-4">
-              <ClipboardCheck className="w-7 h-7 text-blue-600" />
-            </div>
-
-            <h3 className="font-black text-sm md:text-lg">
-              Kiểm tra
-            </h3>
-
-            <p className="text-gray-500 text-sm mt-1 hidden md:block">
-              Test tổng hợp
-            </p>
-          </button>
-
-        </div>
-      </div>
-      {/* WORD LIST */}
-<div className="
-grid
-gap-5
-">
-
-  {renderCompactSection(
-    "Từ đã thuộc",
-    words.filter((w) => w.memoryStrength === 4),
-    "🧠",
-    "bg-green-100"
-  )}
-
-  {renderCompactSection(
-    "Từ đang học",
-    words.filter((w) => typeof w.memoryStrength === "number" && w.memoryStrength > 0 && w.memoryStrength < 4),
-    "🔥",
-    "bg-yellow-100"
-  )}
-
-  {renderCompactSection(
-    "Từ chưa học",
-    words.filter((w) => w.memoryStrength === null || w.memoryStrength === undefined || w.memoryStrength === 0),
-    "📘",
-    "bg-blue-100"
-  )}
-
-</div>
-
-{/* PREVIEW MODAL */}
-{previewModal && (
-
-  <div className="
-fixed
-inset-0
-z-50
-
-bg-black/40
-backdrop-blur-sm
-
-flex
-items-center
-justify-center
-
-p-5
-">
-
-    <div className="
-w-full
-max-w-3xl
-
-bg-white
-
-rounded-[36px]
-
-p-7
-
-shadow-[0_20px_80px_rgba(0,0,0,0.15)]
-
-max-h-[85vh]
-overflow-y-auto
-">
-
-      {/* HEADER */}
-      <div className="
-flex
-items-center
-justify-between
-mb-6
-">
-
-        <div>
-
-          <h2 className="
-text-3xl
-font-black
-">
-
-            {previewModal.title}
-
-          </h2>
-
-          <p className="
-text-gray-400
-font-medium
-mt-1
-">
-
-            {previewModal.words.length} từ
-          </p>
-
-        </div>
-
-        <button
-          onClick={() =>
-            setPreviewModal(null)
-          }
-          className="
-w-11
-h-11
-
-rounded-2xl
-
-hover:bg-gray-100
-
-flex
-items-center
-justify-center
-
-transition
-"
-        >
-
-          ✕
-
-        </button>
-
-      </div>
-
-      {/* LIST */}
-      <div className="
-space-y-3
-">
-
-        {previewModal.words.map(
-          (word) => (
-
-            <div
-              key={word.id}
-              className="
-bg-[#f5f9ff]
-
-rounded-2xl
-p-5
-
-border border-blue-50
-"
-            >
-
-              <div className="
-flex
-items-start
-justify-between
-gap-4
-">
-
-                <div>
-
-                  <h3 className="
-text-xl
-font-black
-">
-
-                    {word.word}
-
-                  </h3>
-
-                  <p className="
-text-gray-600
-mt-1
-">
-
-                    {word.meaning}
-                  </p>
-
-                  {word.example && (
-
-                    <p className="
-text-gray-400
-italic
-mt-3
-text-sm
-">
-
-                      {word.example}
-                    </p>
-
-                  )}
-
+        <h2 className="mb-5 text-3xl font-black text-[#211914]">Chế độ học</h2>
+        <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+          {modes.map((mode) => {
+            const Icon = mode.icon
+
+            return (
+              <button
+                key={mode.title}
+                onClick={() => router.push(mode.href)}
+                className="rounded-[2rem] border border-[#eadccf] bg-white p-5 text-left shadow-sm transition hover:-translate-y-1 hover:shadow-xl"
+              >
+                <div
+                  className={`mb-4 flex h-14 w-14 items-center justify-center rounded-2xl ${mode.iconClassName}`}
+                >
+                  <Icon className="h-7 w-7" />
                 </div>
+                <h3 className="text-lg font-black text-[#221a16]">{mode.title}</h3>
+              </button>
+            )
+          })}
+        </div>
+      </div>
 
-                {word.word_type && (
+      <div className="grid gap-5">
+        {groupedWords.map((group) => {
+          if (group.words.length === 0) return null
+          const GroupIcon = group.icon
 
-                  <span className="
-px-3
-py-1
-
-rounded-full
-
-bg-white
-
-text-xs
-font-bold
-uppercase
-
-border border-gray-100
-">
-
-                    {word.word_type}
-
-                  </span>
-
-                )}
-
+          return (
+            <div
+              key={group.title}
+              className="rounded-[2rem] border border-[#eadccf] bg-white p-6 shadow-sm"
+            >
+              <div className="mb-5 flex items-center gap-3">
+                <div
+                  className={`flex h-12 w-12 items-center justify-center rounded-2xl text-2xl ${group.colorClassName}`}
+                >
+                  <GroupIcon className="h-6 w-6 text-[#3f3125]" />
+                </div>
+                <div>
+                  <h3 className="text-2xl font-black text-[#221a16]">{group.title}</h3>
+                  <p className="text-sm font-medium text-[#8b7764]">{group.words.length} từ vựng</p>
+                </div>
               </div>
 
+              <div className="grid gap-3">
+                {group.words.map((word) => (
+                  <div
+                    key={word.id}
+                    className="rounded-[1.5rem] border border-[#edf2f7] bg-[#fbfdff] px-4 py-4 md:px-5"
+                  >
+                    <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
+                      <div className="min-w-0 flex-1">
+                        <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
+                          <h4 className="text-lg font-black text-[#221a16] md:text-[1.15rem]">
+                            {word.word}
+                          </h4>
+                          {word.ipa && (
+                            <span className="text-sm text-[#8a8a8a]">{word.ipa}</span>
+                          )}
+                        </div>
+                        <p className="mt-1 text-[15px] text-[#5f5a55]">{word.meaning}</p>
+                        {word.example && (
+                          <p className="mt-2 line-clamp-2 text-sm italic text-[#8a8178]">
+                            {word.example}
+                          </p>
+                        )}
+                      </div>
+
+                      {word.word_type && (
+                        <span className="w-fit shrink-0 rounded-full border border-[#ece4da] bg-white px-3 py-1 text-xs font-bold uppercase text-[#6e5844]">
+                          {word.word_type}
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                ))}
+              </div>
             </div>
-
           )
-        )}
-
+        })}
       </div>
-
-    </div>
-
-  </div>
-
-)}
-    </section >
+    </section>
   )
 }

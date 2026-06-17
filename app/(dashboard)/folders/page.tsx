@@ -4,6 +4,7 @@ import { useEffect, useEffectEvent, useMemo, useState } from "react"
 import { useRouter } from "next/navigation"
 import { Check, Clock3, MoreHorizontal, Pencil, Search, SlidersHorizontal, Trash2, User } from "lucide-react"
 import { supabase } from "@/lib/supabase"
+import { formatRelativeStudyTime, getLatestTimestamp, parseSupabaseTimestamp } from "@/lib/time"
 
 type VocabSet = {
   id: string
@@ -56,24 +57,7 @@ type LearningWordProgress = {
 
 type SortBy = "az" | "za" | "modified"
 
-const formatRelativeTime = (value?: string | null) => {
-  if (!value) return "Chưa học"
-
-  const time = new Date(value).getTime()
-  if (Number.isNaN(time)) return "Chưa học"
-
-  const diffMinutes = Math.max(0, Math.floor((Date.now() - time) / 60000))
-  if (diffMinutes < 1) return "Vừa xong"
-  if (diffMinutes < 60) return `${diffMinutes} phút trước`
-
-  const diffHours = Math.floor(diffMinutes / 60)
-  if (diffHours < 24) return `${diffHours} giờ trước`
-
-  const diffDays = Math.floor(diffHours / 24)
-  if (diffDays < 30) return `${diffDays} ngày trước`
-
-  return new Date(value).toLocaleDateString("vi-VN")
-}
+const formatRelativeTime = formatRelativeStudyTime
 
 const getLearningStats = (
   session: LearningSession | undefined,
@@ -102,14 +86,7 @@ const getLearningStats = (
   }
 }
 
-const latestDate = (...values: (string | null | undefined)[]) => {
-  const latest = values
-    .map((value) => (value ? new Date(value).getTime() : Number.NaN))
-    .filter((value) => !Number.isNaN(value))
-    .sort((a, b) => b - a)[0]
-
-  return latest ? new Date(latest).toISOString() : null
-}
+const latestDate = getLatestTimestamp
 
 export default function ArchivePage() {
   const router = useRouter()
@@ -177,9 +154,9 @@ export default function ArchivePage() {
       ;((sessions as LearningSession[] | null) || []).forEach((learningSession) => {
         const currentSession = sessionBySetId.get(learningSession.set_id)
         const currentTime = currentSession?.updated_at
-          ? new Date(currentSession.updated_at).getTime()
+          ? (parseSupabaseTimestamp(currentSession.updated_at)?.getTime() ?? Number.NaN)
           : Number.NaN
-        const nextTime = new Date(learningSession.updated_at).getTime()
+        const nextTime = parseSupabaseTimestamp(learningSession.updated_at)?.getTime() ?? Number.NaN
 
         if (!currentSession || nextTime > currentTime) {
           sessionBySetId.set(learningSession.set_id, learningSession)
