@@ -1,6 +1,6 @@
 "use client"
 
-import { startTransition, useEffect, useState, use } from "react"
+import { startTransition, use, useEffect, useState } from "react"
 import { useRouter } from "next/navigation"
 import {
   BookOpen,
@@ -69,13 +69,7 @@ const EMPTY_WORD: WordType = {
 
 const TAG_OPTIONS = ["IELTS", "TOEIC", "CEFR", "TOEFL", "Công việc", "Khác"]
 
-function FieldLabel({
-  label,
-  hint,
-}: {
-  label: string
-  hint?: string
-}) {
+function FieldLabel({ label, hint }: { label: string; hint?: string }) {
   return (
     <div className="mb-3">
       <p className="text-sm font-black uppercase tracking-[0.16em] text-[#8d6542]">{label}</p>
@@ -110,9 +104,9 @@ export function VocabSetEditor(props: EditorMode) {
   const [closing, setClosing] = useState(false)
   const [originalData, setOriginalData] = useState<string | null>(null)
 
-  const hasWords = words.some((word) =>
-    Object.values(word).some((value) => value.trim())
-  )
+  const validWordCount = words.filter((word) => word.word.trim() && word.meaning.trim()).length
+  const draftedWordCount = words.filter((word) => word.word.trim()).length
+  const hasWords = words.some((word) => Object.values(word).some((value) => value.trim()))
 
   const currentData = JSON.stringify({
     isPublic,
@@ -167,7 +161,6 @@ export function VocabSetEditor(props: EditorMode) {
       setLoading(true)
 
       const { data: setData } = await supabase.from("vocab_sets").select("*").eq("id", setId).single()
-
       if (cancelled) return
 
       if (setData) {
@@ -178,7 +171,6 @@ export function VocabSetEditor(props: EditorMode) {
       }
 
       const { data: wordsData } = await supabase.from("vocab_words").select("*").eq("set_id", setId)
-
       if (cancelled) return
 
       const formattedWords =
@@ -246,7 +238,6 @@ export function VocabSetEditor(props: EditorMode) {
 
     setTimeout(() => {
       const shouldRedirect = popup.redirect
-
       setPopup((current) => ({ ...current, show: false }))
       setClosing(false)
 
@@ -623,7 +614,7 @@ word	meaning	ipa	word type	example	synonyms`}
                         }}
                         className="inline-flex h-12 items-center justify-center rounded-2xl border border-[#e2d2bf] bg-white px-5 font-bold text-[#2d241d] transition hover:bg-[#fff8f1]"
                       >
-                        Copy Prompt
+                        📋 Copy Prompt
                       </button>
                     </div>
                   </div>
@@ -663,78 +654,75 @@ word	meaning	ipa	word type	example	synonyms`}
         </div>
       ) : null}
 
-      <div className="relative mx-auto max-w-7xl">
-        <div className="rounded-[2.5rem] border border-[#ead8c4] bg-[linear-gradient(135deg,#fff8ef_0%,#f7eadb_100%)] p-6 shadow-[0_18px_48px_rgba(84,58,33,0.08)] md:p-8">
-          <div className="flex flex-col gap-6">
-            <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
+      <div className="relative mx-auto w-full max-w-[80rem]">
+        <div className="rounded-[2rem] border border-[#ead8c4] bg-[linear-gradient(135deg,#fff8ef_0%,#f7eadb_100%)] p-5 shadow-[0_18px_48px_rgba(84,58,33,0.08)] md:rounded-[2.5rem] md:p-8">
+          <div className="flex flex-col gap-4">
+            <div className="flex flex-col gap-4 xl:flex-row xl:items-end xl:justify-between">
               <div>
-                <p className="inline-flex items-center gap-2 rounded-full bg-[#fff1dd] px-4 py-2 text-xs font-black uppercase tracking-[0.18em] text-[#c96d35]">
+                <p className="inline-flex items-center gap-2 rounded-full bg-[#fff1dd] px-4 py-2 text-[11px] font-black uppercase tracking-[0.18em] text-[#c96d35] md:text-xs">
                   {isEditMode ? <PencilLine className="h-3.5 w-3.5" /> : <Sparkles className="h-3.5 w-3.5" />}
                   Thông tin tổng quan
                 </p>
-                <h1 className="mt-4 text-3xl font-black tracking-[-0.04em] text-[#241c17] md:text-5xl">
+                <h1 className="mt-4 text-[2.2rem] font-black leading-[0.95] tracking-[-0.05em] text-[#241c17] md:text-5xl">
                   {isEditMode ? "Chỉnh sửa bộ từ" : "Tạo bộ từ mới"}
                 </h1>
-                <p className="mt-3 max-w-3xl text-base leading-8 text-[#66584b]">
-                  
-                </p>
               </div>
 
-              <div className="rounded-[1.75rem] border border-[#ead8c4] bg-[#fffaf3] px-5 py-4">
-                <p className="text-sm font-black uppercase tracking-[0.16em] text-[#8d6542]">Tên bộ từ</p>
-                <p className="mt-2 text-lg font-black text-[#241c17]">{title.trim() || "Chưa đặt tên bộ từ"}</p>
+              <div className="rounded-[1.5rem] border border-[#ead8c4] bg-[#fffaf3] px-4 py-4 md:px-5">
+                <p className="text-xs font-black uppercase tracking-[0.16em] text-[#8d6542] md:text-sm">Tên bộ từ</p>
+                <p className="mt-2 text-base font-black text-[#241c17] md:text-lg">{title.trim() || "Chưa đặt tên bộ từ"}</p>
               </div>
             </div>
 
-            <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-              <div className="rounded-[1.75rem] border border-[#ead8c4] bg-[#fffaf3] p-5">
-                <p className="text-sm font-black uppercase tracking-[0.16em] text-[#8d6542]">Trạng thái</p>
-                <div className="mt-4 flex items-center gap-3 text-[#241c17]">
-                  <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-[#1f1a17] text-white">
+            <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+              <div className="rounded-[1.5rem] border border-[#ead8c4] bg-[#fffaf3] p-4 md:p-5">
+                <p className="text-xs font-black uppercase tracking-[0.16em] text-[#8d6542] md:text-sm">Trạng thái</p>
+                <div className="mt-3 flex items-center gap-3">
+                  <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-[#1f1a17] text-white">
                     {isPublic ? <Globe className="h-5 w-5" /> : <Lock className="h-5 w-5" />}
                   </div>
-                  <div>
-                    <p className="font-black">{isPublic ? "Công khai" : "Riêng tư"}</p>
-                    <p className="text-sm text-[#7b6a5d]">{isPublic ? "Có thể chia sẻ với cộng đồng" : "Chỉ mình bạn nhìn thấy"}</p>
+                  <div className="min-w-0">
+                    <p className="text-lg font-black leading-tight text-[#241c17]">{isPublic ? "Công khai" : "Riêng tư"}</p>
+                    <p className="mt-1 text-sm leading-6 text-[#7b6a5d]">{isPublic ? "Có thể chia sẻ với cộng đồng" : "Chỉ mình bạn nhìn thấy"}</p>
                   </div>
                 </div>
               </div>
 
-              <div className="rounded-[1.75rem] border border-[#ead8c4] bg-[#fffaf3] p-5">
-                <p className="text-sm font-black uppercase tracking-[0.16em] text-[#8d6542]">Tổng từ</p>
-                <div className="mt-4 flex items-center gap-3 text-[#241c17]">
-                  <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-[#d96d32] text-white">
+              <div className="rounded-[1.5rem] border border-[#ead8c4] bg-[#fffaf3] p-4 md:p-5">
+                <p className="text-xs font-black uppercase tracking-[0.16em] text-[#8d6542] md:text-sm">Tổng từ</p>
+                <div className="mt-3 flex items-center gap-3">
+                  <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-[#d96d32] text-white">
                     <BookOpen className="h-5 w-5" />
                   </div>
-                  <div>
-                    <p className="font-black">{words.filter((word) => word.word.trim()).length} mục</p>
-                    <p className="text-sm text-[#7b6a5d]">Đang chuẩn bị cho bộ từ này</p>
+                  <div className="min-w-0">
+                    <p className="text-lg font-black leading-tight text-[#241c17]">{draftedWordCount} mục</p>
+                    <p className="mt-1 text-sm leading-6 text-[#7b6a5d]">Đang chuẩn bị cho bộ từ này</p>
                   </div>
                 </div>
               </div>
 
-              <div className="rounded-[1.75rem] border border-[#ead8c4] bg-[#fffaf3] p-5">
-                <p className="text-sm font-black uppercase tracking-[0.16em] text-[#8d6542]">Từ hợp lệ</p>
-                <div className="mt-4 flex items-center gap-3 text-[#241c17]">
-                  <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-[#f2c96d] text-[#241c17]">
+              <div className="rounded-[1.5rem] border border-[#ead8c4] bg-[#fffaf3] p-4 md:p-5">
+                <p className="text-xs font-black uppercase tracking-[0.16em] text-[#8d6542] md:text-sm">Từ hợp lệ</p>
+                <div className="mt-3 flex items-center gap-3">
+                  <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-[#f2c96d] text-[#241c17]">
                     <Check className="h-5 w-5" />
                   </div>
-                  <div>
-                    <p className="font-black">{words.filter((word) => word.word.trim() && word.meaning.trim()).length} / {words.length}</p>
-                    <p className="text-sm text-[#7b6a5d]">Số từ đã đủ Word và Meaning</p>
+                  <div className="min-w-0">
+                    <p className="text-lg font-black leading-tight text-[#241c17]">{validWordCount} / {words.length}</p>
+                    <p className="mt-1 text-sm leading-6 text-[#7b6a5d]">Số từ đã đủ Word và Meaning</p>
                   </div>
                 </div>
               </div>
 
-              <div className="rounded-[1.75rem] border border-[#ead8c4] bg-[#fffaf3] p-5">
-                <p className="text-sm font-black uppercase tracking-[0.16em] text-[#8d6542]">Tiến độ</p>
-                <div className="mt-4 flex items-center gap-3 text-[#241c17]">
-                  <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-[#efe2d3] text-[#241c17]">
+              <div className="rounded-[1.5rem] border border-[#ead8c4] bg-[#fffaf3] p-4 md:p-5">
+                <p className="text-xs font-black uppercase tracking-[0.16em] text-[#8d6542] md:text-sm">Tiến độ</p>
+                <div className="mt-3 flex items-center gap-3">
+                  <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-[#efe2d3] text-[#241c17]">
                     <Sparkles className="h-5 w-5" />
                   </div>
-                  <div>
-                    <p className="font-black">{hasChanges ? "Đang có thay đổi" : "Đã đồng bộ"}</p>
-                    <p className="text-sm text-[#7b6a5d]">{isEditMode ? "Cập nhật xong nhớ bấm lưu" : "Bạn có thể lưu ngay khi sẵn sàng"}</p>
+                  <div className="min-w-0">
+                    <p className="text-lg font-black leading-tight text-[#241c17]">{hasChanges ? "Đang có thay đổi" : "Đã đồng bộ"}</p>
+                    <p className="mt-1 text-sm leading-6 text-[#7b6a5d]">{isEditMode ? "Cập nhật xong nhớ bấm lưu" : "Bạn có thể lưu ngay khi sẵn sàng"}</p>
                   </div>
                 </div>
               </div>
@@ -742,211 +730,210 @@ word	meaning	ipa	word type	example	synonyms`}
           </div>
         </div>
 
-        <div className="mt-8">
-          <div className="space-y-8">
-            <article className="rounded-[2.25rem] border border-[#ead8c4] bg-[#fffaf3] p-6 shadow-[0_18px_48px_rgba(84,58,33,0.08)] md:p-8">
-              <div className="flex flex-col gap-5 lg:flex-row lg:items-start lg:justify-between">
-                <div>
-                  <p className="text-sm font-black uppercase tracking-[0.16em] text-[#8d6542]">Thông tin bộ từ</p>
-                  <h2 className="mt-2 text-3xl font-black text-[#241c17]">Phần mô tả và định vị bộ từ</h2>
-                </div>
-
-                <div className="flex flex-wrap gap-3">
-                  <button
-                    onClick={() => setShowImport(true)}
-                    className="inline-flex h-12 items-center justify-center gap-2 rounded-2xl bg-[#1f1a17] px-5 text-sm font-bold text-[#fff8f0] transition hover:bg-black"
-                  >
-                    <Import className="h-4 w-4" />
-                    Thêm từ vựng nhanh
-                  </button>
-
-                  <button
-                    onClick={() => setIsPublic((current) => !current)}
-                    className={`inline-flex h-12 items-center justify-center gap-2 rounded-2xl px-5 text-sm font-bold transition ${
-                      isPublic
-                        ? "bg-[#d96d32] text-white hover:bg-[#c25f29]"
-                        : "border border-[#e2d2bf] bg-white text-[#2d241d] hover:bg-[#fff8f1]"
-                    }`}
-                  >
-                    {isPublic ? <Globe className="h-4 w-4" /> : <Lock className="h-4 w-4" />}
-                    {isPublic ? "Công khai" : "Riêng tư"}
-                  </button>
-                </div>
+        <div className="mt-6 space-y-6 md:mt-8 md:space-y-8">
+          <article className="rounded-[2rem] border border-[#ead8c4] bg-[#fffaf3] p-5 shadow-[0_18px_48px_rgba(84,58,33,0.08)] md:rounded-[2.25rem] md:p-8">
+            <div className="flex flex-col gap-5 lg:flex-row lg:items-start lg:justify-between">
+              <div>
+                <p className="text-sm font-black uppercase tracking-[0.16em] text-[#8d6542]">Thông tin bộ từ</p>
+                <h2 className="mt-2 text-3xl font-black text-[#241c17]">Phần mô tả và định vị bộ từ</h2>
               </div>
 
-              <div className="mt-8 space-y-6">
-                <div>
-                  <FieldLabel label="Tên bộ từ" hint="Chọn tên ngắn gọn, dễ tìm và dễ nhớ." />
-                  <input
-                    value={title}
-                    onChange={(event) => setTitle(event.target.value)}
-                    placeholder="Ví dụ: IELTS Vocabulary"
-                    className="w-full rounded-[1.5rem] border border-[#dbc7b4] bg-[#fffdf9] px-5 py-4 text-[#241c17] outline-none transition placeholder:text-[#9a8673] focus:border-[#d96d32]"
-                  />
-                </div>
+              <div className="flex flex-wrap gap-3">
+                <button
+                  onClick={() => setShowImport(true)}
+                  className="inline-flex h-12 items-center justify-center gap-2 rounded-2xl bg-[#1f1a17] px-5 text-sm font-bold text-[#fff8f0] transition hover:bg-black"
+                >
+                  <Import className="h-4 w-4" />
+                  ✨ Thêm từ vựng nhanh
+                </button>
 
-                <div>
-                  <FieldLabel label="Mô tả" hint="Ghi nhanh mục tiêu học, ngữ cảnh sử dụng hoặc cấp độ." />
-                  <textarea
-                    value={description}
-                    onChange={(event) => setDescription(event.target.value)}
-                    placeholder="Thêm mô tả cho bộ từ của bạn..."
-                    className="min-h-32 w-full resize-none rounded-[1.5rem] border border-[#dbc7b4] bg-[#fffdf9] px-5 py-4 text-[#241c17] outline-none transition placeholder:text-[#9a8673] focus:border-[#d96d32]"
-                  />
-                </div>
-
-                <div className="relative">
-                  <FieldLabel label="Tag" hint="Dùng tag để lọc nhanh trong kho bộ từ." />
-                  <button
-                    type="button"
-                    onClick={() => setShowTags((current) => !current)}
-                    className="flex w-full items-center justify-between rounded-[1.5rem] border border-[#dbc7b4] bg-[#fffdf9] px-5 py-4 font-semibold text-[#241c17] transition hover:border-[#d96d32]"
-                  >
-                    <span>{tag}</span>
-                    <ChevronDown className={`h-5 w-5 text-[#8d6542] transition ${showTags ? "rotate-180" : ""}`} />
-                  </button>
-
-                  {showTags ? (
-                    <div className="absolute z-20 mt-3 w-full rounded-[1.5rem] border border-[#e2d2bf] bg-[#fffaf3] p-2 shadow-[0_18px_40px_rgba(84,58,33,0.14)]">
-                      {TAG_OPTIONS.map((item) => (
-                        <button
-                          key={item}
-                          type="button"
-                          onClick={() => {
-                            setTag(item)
-                            setShowTags(false)
-                          }}
-                          className={`flex w-full items-center justify-between rounded-[1rem] px-4 py-3 text-left font-bold transition ${
-                            tag === item ? "bg-[#1f1a17] text-[#fff8f0]" : "text-[#2d241d] hover:bg-[#f7efe5]"
-                          }`}
-                        >
-                          <span>{item}</span>
-                          {tag === item ? <Check className="h-4 w-4" /> : null}
-                        </button>
-                      ))}
-                    </div>
-                  ) : null}
-                </div>
+                <button
+                  onClick={() => setIsPublic((current) => !current)}
+                  className={`inline-flex h-12 items-center justify-center gap-2 rounded-2xl px-5 text-sm font-bold transition ${
+                    isPublic
+                      ? "bg-[#d96d32] text-white hover:bg-[#c25f29]"
+                      : "border border-[#e2d2bf] bg-white text-[#2d241d] hover:bg-[#fff8f1]"
+                  }`}
+                >
+                  {isPublic ? <Globe className="h-4 w-4" /> : <Lock className="h-4 w-4" />}
+                  {isPublic ? "🌍 Công khai" : "🔒 Riêng tư"}
+                </button>
               </div>
-            </article>
+            </div>
 
-            <article className="rounded-[2.25rem] border border-[#ead8c4] bg-[#fffaf3] p-6 shadow-[0_18px_48px_rgba(84,58,33,0.08)] md:p-8">
-              <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
-                <div>
-                  <p className="text-sm font-black uppercase tracking-[0.16em] text-[#8d6542]">Danh sách từ</p>
-                  <h2 className="mt-2 text-3xl font-black text-[#241c17]">Thêm từ vựng theo từng thẻ từ</h2>
-                </div>
-
-                <div className="flex flex-wrap gap-3">
-                  <button
-                    onClick={addRow}
-                    className="inline-flex h-12 items-center justify-center gap-2 rounded-2xl bg-[#d96d32] px-5 text-sm font-bold text-white transition hover:bg-[#c25f29]"
-                  >
-                    <Plus className="h-4 w-4" />
-                    Thêm từ
-                  </button>
-                  <button
-                    onClick={resetWords}
-                    disabled={!hasWords}
-                    className="inline-flex h-12 items-center justify-center gap-2 rounded-2xl border border-[#e2d2bf] bg-white px-5 text-sm font-bold text-[#2d241d] transition hover:bg-[#fff8f1] disabled:cursor-not-allowed disabled:opacity-50"
-                  >
-                    <Trash2 className="h-4 w-4" />
-                    Xóa toàn bộ
-                  </button>
-                </div>
+            <div className="mt-6 space-y-5 md:mt-8 md:space-y-6">
+              <div>
+                <FieldLabel label="Tên bộ từ" hint="Chọn tên ngắn gọn, dễ tìm và dễ nhớ." />
+                <input
+                  value={title}
+                  onChange={(event) => setTitle(event.target.value)}
+                  placeholder="Ví dụ: IELTS Vocabulary"
+                  className="w-full rounded-[1.5rem] border border-[#dbc7b4] bg-[#fffdf9] px-5 py-4 text-[#241c17] outline-none transition placeholder:text-[#9a8673] focus:border-[#d96d32]"
+                />
               </div>
 
-              <div className="mt-8 space-y-5">
-                {words.map((word, index) => (
-                  <div
-                    key={index}
-                    className={`rounded-[2rem] border p-5 transition md:p-6 ${
-                      invalidIndexes.includes(index)
-                        ? "border-[#f0beb5] bg-[#fff1ef] shadow-[0_14px_34px_rgba(208,77,53,0.08)]"
-                        : "border-[#ead8c4] bg-[#fffdf9]"
-                    }`}
-                  >
-                    <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
-                      <div className="flex items-center gap-4">
-                        <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-[#1f1a17] text-lg font-black text-[#fff8f0]">
-                          {index + 1}
-                        </div>
-                        <div>
-                          <h3 className="text-xl font-black text-[#241c17]">Vocabulary</h3>
-                          <p className="text-sm text-[#7b6a5d]">Nhập word, meaning, ví dụ và chi tiết bổ sung.</p>
-                        </div>
-                      </div>
+              <div>
+                <FieldLabel label="Mô tả" hint="Ghi nhanh mục tiêu học, ngữ cảnh sử dụng hoặc cấp độ." />
+                <textarea
+                  value={description}
+                  onChange={(event) => setDescription(event.target.value)}
+                  placeholder="Thêm mô tả cho bộ từ của bạn..."
+                  className="min-h-32 w-full resize-none rounded-[1.5rem] border border-[#dbc7b4] bg-[#fffdf9] px-5 py-4 text-[#241c17] outline-none transition placeholder:text-[#9a8673] focus:border-[#d96d32]"
+                />
+              </div>
 
-                      {words.length > 1 ? (
-                        <button
-                          onClick={() => removeRow(index)}
-                          className="inline-flex h-11 items-center justify-center gap-2 rounded-2xl border border-[#f0beb5] bg-[#fff7f5] px-4 text-sm font-bold text-[#c44b36] transition hover:bg-[#fff1ef]"
-                        >
-                          <Trash2 className="h-4 w-4" />
-                          Xóa
-                        </button>
-                      ) : null}
-                    </div>
+              <div className="relative">
+                <FieldLabel label="Tag" hint="Dùng tag để lọc nhanh trong kho bộ từ." />
+                <button
+                  type="button"
+                  onClick={() => setShowTags((current) => !current)}
+                  className="flex w-full items-center justify-between rounded-[1.5rem] border border-[#dbc7b4] bg-[#fffdf9] px-5 py-4 font-semibold text-[#241c17] transition hover:border-[#d96d32]"
+                >
+                  <span>{tag}</span>
+                  <ChevronDown className={`h-5 w-5 text-[#8d6542] transition ${showTags ? "rotate-180" : ""}`} />
+                </button>
 
-                    <div className="mt-6 grid gap-4 md:grid-cols-2">
-                      <input
-                        value={word.word}
-                        onChange={(event) => updateWord(index, "word", event.target.value)}
-                        placeholder="Word"
-                        className="rounded-[1.25rem] border border-[#e2d2bf] bg-white px-4 py-4 text-[#241c17] outline-none transition placeholder:text-[#9a8673] focus:border-[#d96d32]"
-                      />
-                      <input
-                        value={word.meaning}
-                        onChange={(event) => updateWord(index, "meaning", event.target.value)}
-                        placeholder="Meaning"
-                        className="rounded-[1.25rem] border border-[#e2d2bf] bg-white px-4 py-4 text-[#241c17] outline-none transition placeholder:text-[#9a8673] focus:border-[#d96d32]"
-                      />
-                      <input
-                        value={word.ipa}
-                        onChange={(event) => updateWord(index, "ipa", event.target.value)}
-                        placeholder="IPA"
-                        className="rounded-[1.25rem] border border-[#e2d2bf] bg-white px-4 py-4 text-[#241c17] outline-none transition placeholder:text-[#9a8673] focus:border-[#d96d32]"
-                      />
-                      <input
-                        value={word.type}
-                        onChange={(event) => updateWord(index, "type", event.target.value)}
-                        placeholder="Word type"
-                        className="rounded-[1.25rem] border border-[#e2d2bf] bg-white px-4 py-4 text-[#241c17] outline-none transition placeholder:text-[#9a8673] focus:border-[#d96d32]"
-                      />
-                      <textarea
-                        value={word.example}
-                        onChange={(event) => updateWord(index, "example", event.target.value)}
-                        placeholder="Example sentence"
-                        className="min-h-28 rounded-[1.25rem] border border-[#e2d2bf] bg-white px-4 py-4 text-[#241c17] outline-none transition placeholder:text-[#9a8673] focus:border-[#d96d32] md:col-span-2"
-                      />
-                      <input
-                        value={word.synonyms}
-                        onChange={(event) => updateWord(index, "synonyms", event.target.value)}
-                        placeholder="Synonyms"
-                        className="rounded-[1.25rem] border border-[#e2d2bf] bg-white px-4 py-4 text-[#241c17] outline-none transition placeholder:text-[#9a8673] focus:border-[#d96d32] md:col-span-2"
-                      />
-                    </div>
+                {showTags ? (
+                  <div className="absolute z-20 mt-3 w-full rounded-[1.5rem] border border-[#e2d2bf] bg-[#fffaf3] p-2 shadow-[0_18px_40px_rgba(84,58,33,0.14)]">
+                    {TAG_OPTIONS.map((item) => (
+                      <button
+                        key={item}
+                        type="button"
+                        onClick={() => {
+                          setTag(item)
+                          setShowTags(false)
+                        }}
+                        className={`flex w-full items-center justify-between rounded-[1rem] px-4 py-3 text-left font-bold transition ${
+                          tag === item ? "bg-[#1f1a17] text-[#fff8f0]" : "text-[#2d241d] hover:bg-[#f7efe5]"
+                        }`}
+                      >
+                        <span>{item}</span>
+                        {tag === item ? <Check className="h-4 w-4" /> : null}
+                      </button>
+                    ))}
                   </div>
-                ))}
+                ) : null}
               </div>
-              <div className="mt-8 flex flex-col gap-3 border-t border-[#ead8c4] pt-8 md:flex-row">
-                <button
-                  onClick={saveSet}
-                  disabled={saving || !hasWords || !hasChanges}
-                  className="flex h-14 flex-1 items-center justify-center rounded-2xl bg-[#1f1a17] text-base font-black text-white transition hover:bg-black disabled:cursor-not-allowed disabled:bg-[#b8afa6]"
-                >
-                  {saving ? "Đang lưu..." : " Lưu bộ từ"}
-                </button>
+            </div>
+          </article>
 
+          <article className="rounded-[2rem] border border-[#ead8c4] bg-[#fffaf3] p-5 shadow-[0_18px_48px_rgba(84,58,33,0.08)] md:rounded-[2.25rem] md:p-8">
+            <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+              <div>
+                <p className="text-sm font-black uppercase tracking-[0.16em] text-[#8d6542]">Danh sách từ</p>
+                <h2 className="mt-2 text-3xl font-black text-[#241c17]">Thêm từ vựng theo từng thẻ từ</h2>
+              </div>
+
+              <div className="flex flex-wrap gap-3">
                 <button
-                  onClick={() => router.push("/folders")}
-                  className="flex h-14 flex-1 items-center justify-center rounded-2xl border border-[#e2d2bf] bg-white text-base font-bold text-[#2d241d] transition hover:bg-[#fff8f1]"
+                  onClick={addRow}
+                  className="inline-flex h-12 items-center justify-center gap-2 rounded-2xl bg-[#d96d32] px-5 text-sm font-bold text-white transition hover:bg-[#c25f29]"
                 >
-                  Về kho bộ từ
+                  <Plus className="h-4 w-4" />
+                  + Thêm từ
+                </button>
+                <button
+                  onClick={resetWords}
+                  disabled={!hasWords}
+                  className="inline-flex h-12 items-center justify-center gap-2 rounded-2xl border border-[#e2d2bf] bg-white px-5 text-sm font-bold text-[#2d241d] transition hover:bg-[#fff8f1] disabled:cursor-not-allowed disabled:opacity-50"
+                >
+                  <Trash2 className="h-4 w-4" />
+                  🗑 Xóa toàn bộ
                 </button>
               </div>
-            </article>
-          </div>
+            </div>
+
+            <div className="mt-6 space-y-4 md:mt-8 md:space-y-5">
+              {words.map((word, index) => (
+                <div
+                  key={index}
+                  className={`rounded-[1.75rem] border p-5 transition md:rounded-[2rem] md:p-6 ${
+                    invalidIndexes.includes(index)
+                      ? "border-[#f0beb5] bg-[#fff1ef] shadow-[0_14px_34px_rgba(208,77,53,0.08)]"
+                      : "border-[#ead8c4] bg-[#fffdf9]"
+                  }`}
+                >
+                  <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+                    <div className="flex items-center gap-4">
+                      <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-[#1f1a17] text-base font-black text-[#fff8f0] md:h-12 md:w-12 md:text-lg">
+                        {index + 1}
+                      </div>
+                      <div>
+                        <h3 className="text-xl font-black text-[#241c17]">Vocabulary</h3>
+                        <p className="text-sm text-[#7b6a5d]">Nhập word, meaning, ví dụ và chi tiết bổ sung.</p>
+                      </div>
+                    </div>
+
+                    {words.length > 1 ? (
+                      <button
+                        onClick={() => removeRow(index)}
+                        className="inline-flex h-11 items-center justify-center gap-2 rounded-2xl border border-[#f0beb5] bg-[#fff7f5] px-4 text-sm font-bold text-[#c44b36] transition hover:bg-[#fff1ef]"
+                      >
+                        <Trash2 className="h-4 w-4" />
+                        Xóa
+                      </button>
+                    ) : null}
+                  </div>
+
+                  <div className="mt-6 grid gap-4 md:grid-cols-2">
+                    <input
+                      value={word.word}
+                      onChange={(event) => updateWord(index, "word", event.target.value)}
+                      placeholder="Word"
+                      className="rounded-[1.25rem] border border-[#e2d2bf] bg-white px-4 py-4 text-[#241c17] outline-none transition placeholder:text-[#9a8673] focus:border-[#d96d32]"
+                    />
+                    <input
+                      value={word.meaning}
+                      onChange={(event) => updateWord(index, "meaning", event.target.value)}
+                      placeholder="Meaning"
+                      className="rounded-[1.25rem] border border-[#e2d2bf] bg-white px-4 py-4 text-[#241c17] outline-none transition placeholder:text-[#9a8673] focus:border-[#d96d32]"
+                    />
+                    <input
+                      value={word.ipa}
+                      onChange={(event) => updateWord(index, "ipa", event.target.value)}
+                      placeholder="IPA"
+                      className="rounded-[1.25rem] border border-[#e2d2bf] bg-white px-4 py-4 text-[#241c17] outline-none transition placeholder:text-[#9a8673] focus:border-[#d96d32]"
+                    />
+                    <input
+                      value={word.type}
+                      onChange={(event) => updateWord(index, "type", event.target.value)}
+                      placeholder="Word type"
+                      className="rounded-[1.25rem] border border-[#e2d2bf] bg-white px-4 py-4 text-[#241c17] outline-none transition placeholder:text-[#9a8673] focus:border-[#d96d32]"
+                    />
+                    <textarea
+                      value={word.example}
+                      onChange={(event) => updateWord(index, "example", event.target.value)}
+                      placeholder="Example sentence"
+                      className="min-h-28 rounded-[1.25rem] border border-[#e2d2bf] bg-white px-4 py-4 text-[#241c17] outline-none transition placeholder:text-[#9a8673] focus:border-[#d96d32] md:col-span-2"
+                    />
+                    <input
+                      value={word.synonyms}
+                      onChange={(event) => updateWord(index, "synonyms", event.target.value)}
+                      placeholder="Synonyms"
+                      className="rounded-[1.25rem] border border-[#e2d2bf] bg-white px-4 py-4 text-[#241c17] outline-none transition placeholder:text-[#9a8673] focus:border-[#d96d32] md:col-span-2"
+                    />
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            <div className="mt-8 flex flex-col gap-3 border-t border-[#ead8c4] pt-8 md:flex-row">
+              <button
+                onClick={saveSet}
+                disabled={saving || !hasWords || !hasChanges}
+                className="flex h-14 flex-1 items-center justify-center rounded-2xl bg-[#1f1a17] text-base font-black text-white transition hover:bg-black disabled:cursor-not-allowed disabled:bg-[#b8afa6]"
+              >
+                {saving ? "Đang lưu..." : "💾 Lưu bộ từ"}
+              </button>
+
+              <button
+                onClick={() => router.push("/folders")}
+                className="flex h-14 flex-1 items-center justify-center rounded-2xl border border-[#e2d2bf] bg-white text-base font-bold text-[#2d241d] transition hover:bg-[#fff8f1]"
+              >
+                Về kho bộ từ
+              </button>
+            </div>
+          </article>
         </div>
       </div>
     </section>
