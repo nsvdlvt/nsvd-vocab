@@ -119,7 +119,7 @@ export default function UpgradePage() {
           className="mb-8 flex items-center gap-2 rounded-2xl border border-gray-100 bg-white px-4 py-3 shadow-sm"
         >
           <ArrowLeft className="h-5 w-5" />
-          Quay lại
+          Quay lạii
         </button>
 
         <div className="rounded-[36px] bg-white p-8 shadow-[0_20px_80px_rgba(0,0,0,0.08)]">
