@@ -1,7 +1,7 @@
 import type { MetadataRoute } from "next"
+import { getDefaultSiteUrl } from "@/lib/site-url"
 
-const siteUrl =
-  process.env.NEXT_PUBLIC_APP_URL?.trim() || "https://vocab.nsvd.io.vn"
+const siteUrl = getDefaultSiteUrl()
 
 const staticRoutes = [
   "",
