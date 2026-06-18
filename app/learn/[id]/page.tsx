@@ -36,7 +36,8 @@ type LearningWord = {
     memoryStrength: number
     hasSeen: boolean
     status: "new" | "learning" | "mastered"
-    questionType?: "mcq" | "reverse"
+    questionType?: "term" | "definition"
+    questionFormat?: "mcq" | "fill"
 }
 
 type WordProgressRow = {
@@ -58,6 +59,7 @@ type LearningSessionSnapshot = {
     options?: string[] | null
     option_seed?: number | null
     streak?: number | null
+    question_formats?: ("mcq" | "fill")[] | null
     learning_modes?: ("term" | "definition")[] | null
     auto_continue?: boolean | null
     summary_visible?: boolean | null
@@ -67,6 +69,17 @@ type LearningSessionSnapshot = {
 }
 
 type SummaryGroupKey = "mastered" | "learning" | "new"
+type AnswerEvaluation = "correct" | "partial" | "wrong"
+
+type PendingAnswerResult = {
+    wordId: string
+    baselineStrength: number
+    baselineCorrectCount: number
+    baselineWrongCount: number
+    baselineStreak: number
+    isCorrect: boolean
+    evaluation: AnswerEvaluation
+}
 
 const MAX_MEMORY_STRENGTH = 4
 const SECTION_SIZE = 10
@@ -98,21 +111,31 @@ const shuffleWords = <T,>(items: T[]) =>
 const getRandomQuestionType = (
     modes: ("term" | "definition")[]
 ): LearningWord["questionType"] => {
-    const types: LearningWord["questionType"][] = []
+    const types: NonNullable<LearningWord["questionType"]>[] = []
 
     if (modes.includes("term")) {
-        types.push("mcq")
+        types.push("term")
     }
 
     if (modes.includes("definition")) {
-        types.push("reverse")
+        types.push("definition")
     }
 
     if (types.length === 0) {
-        return "mcq"
+        return "term"
     }
 
     return types[Math.floor(Math.random() * types.length)]
+}
+
+const getRandomQuestionFormat = (
+    formats: ("mcq" | "fill")[]
+): LearningWord["questionFormat"] => {
+    if (formats.length === 0) {
+        return "mcq"
+    }
+
+    return formats[Math.floor(Math.random() * formats.length)]
 }
 
 const buildOptionsForWord = (
@@ -121,11 +144,13 @@ const buildOptionsForWord = (
     optionSeed: number
 ) => {
     const expectedAnswer =
-        word.questionType === "reverse" ? word.word : word.meaning
+        word.questionType === "definition" ? word.word : word.meaning
     const answerPool = Array.from(
         new Set(
             allWords.map((item) =>
-                word.questionType === "reverse" ? item.word : item.meaning
+                word.questionType === "definition"
+                    ? item.word
+                    : item.meaning
             )
         )
     ).filter((answer) => answer !== expectedAnswer)
@@ -148,7 +173,8 @@ const normalizeWord = (word: Partial<LearningWord>) => ({
     memoryStrength: clampMemoryStrength(word.memoryStrength ?? 0),
     status: getMemoryStatus(word.memoryStrength ?? 0),
     hasSeen: Boolean(word.hasSeen),
-    questionType: word.questionType || "mcq",
+    questionType: word.questionType || "term",
+    questionFormat: word.questionFormat || "mcq",
     starred: Boolean(word.starred),
     word: word.word || "",
     meaning: word.meaning || "",
@@ -185,6 +211,67 @@ const getLearningSessionDraftKey = (userId: string, setId: string) =>
 const getLoginRedirectUrl = () => {
     const redirectTo = `${window.location.pathname}${window.location.search}`
     return `/login?redirectTo=${encodeURIComponent(redirectTo)}`
+}
+
+const normalizeAnswer = (value: string) => value.trim().toLowerCase()
+
+const tokenizeAnswer = (value: string) =>
+    normalizeAnswer(value)
+        .replace(/[.,/#!$%^&*;:{}=\-_`~()]/g, " ")
+        .split(/\s+/)
+        .filter(Boolean)
+
+const evaluateTypedAnswer = (
+    answer: string,
+    correct: string
+): AnswerEvaluation => {
+    const normalizedAnswer = normalizeAnswer(answer)
+    const normalizedCorrect = normalizeAnswer(correct)
+
+    if (!normalizedAnswer) {
+        return "wrong"
+    }
+
+    if (normalizedAnswer === normalizedCorrect) {
+        return "correct"
+    }
+
+    const answerSegments = normalizedAnswer
+        .split(/[,;/]|(?:\s+-\s+)/)
+        .map((segment) => segment.trim())
+        .filter(Boolean)
+    const correctSegments = normalizedCorrect
+        .split(/[,;/]|(?:\s+-\s+)/)
+        .map((segment) => segment.trim())
+        .filter(Boolean)
+
+    const matchesSegment = answerSegments.some((segment) =>
+        correctSegments.some(
+            (correctSegment) =>
+                segment === correctSegment ||
+                correctSegment.includes(segment) ||
+                segment.includes(correctSegment)
+        )
+    )
+
+    if (matchesSegment) {
+        return "partial"
+    }
+
+    const answerTokens = tokenizeAnswer(answer)
+    const correctTokens = tokenizeAnswer(correct)
+    const sharedTokens = answerTokens.filter((token) =>
+        correctTokens.includes(token)
+    )
+
+    if (
+        sharedTokens.length >= 2 &&
+        sharedTokens.length >= Math.ceil(answerTokens.length / 2)
+    ) {
+        return "partial"
+    }
+
+    return "wrong"
 }
 
 const readLearningSessionDraft = (
@@ -240,10 +327,16 @@ export default function LearnPage({
     const [learningModes, setLearningModes] = useState<
         ("term" | "definition")[]
     >(["term", "definition"])
+    const [questionFormats, setQuestionFormats] = useState<
+        ("mcq" | "fill")[]
+    >(["mcq"])
     const [autoContinue, setAutoContinue] = useState(false)
     const [tempLearningModes, setTempLearningModes] = useState<
         ("term" | "definition")[]
     >(learningModes)
+    const [tempQuestionFormats, setTempQuestionFormats] = useState<
+        ("mcq" | "fill")[]
+    >(questionFormats)
     const [tempAutoContinue, setTempAutoContinue] = useState(autoContinue)
 
     const [editWord, setEditWord] = useState("")
@@ -254,6 +347,11 @@ export default function LearnPage({
 
     const [showAnswer, setShowAnswer] = useState(false)
     const [options, setOptions] = useState<string[]>([])
+    const [typedAnswer, setTypedAnswer] = useState("")
+    const [answerEvaluation, setAnswerEvaluation] =
+        useState<AnswerEvaluation | null>(null)
+    const [pendingAnswerResult, setPendingAnswerResult] =
+        useState<PendingAnswerResult | null>(null)
     const [correctCount, setCorrectCount] = useState(0)
     const [wrongCount, setWrongCount] = useState(0)
     const [sessionCompleted, setSessionCompleted] = useState(false)
@@ -284,7 +382,7 @@ export default function LearnPage({
 
     const currentWord = queue[0]
     const correctAnswer =
-        currentWord?.questionType === "reverse"
+        currentWord?.questionType === "definition"
             ? currentWord.word
             : currentWord?.meaning || ""
     const currentOptionsKey = currentWord
@@ -340,6 +438,7 @@ export default function LearnPage({
         options,
         option_seed: optionSeed,
         streak,
+        question_formats: questionFormats,
         learning_modes: learningModes,
         auto_continue: autoContinue,
         summary_visible: summaryVisible,
@@ -404,6 +503,10 @@ export default function LearnPage({
         setOptions(Array.isArray(session.options) ? session.options : [])
         setOptionSeed(session.option_seed || 0)
         setStreak(session.streak || 0)
+        if (Array.isArray(session.question_formats)) {
+            setQuestionFormats(session.question_formats)
+            setTempQuestionFormats(session.question_formats)
+        }
         if (Array.isArray(session.learning_modes)) {
             setLearningModes(session.learning_modes)
             setTempLearningModes(session.learning_modes)
@@ -544,6 +647,7 @@ export default function LearnPage({
                     ...word,
                     memoryStrength: progressByWordId.get(word.id) ?? 0,
                     questionType: getRandomQuestionType(learningModes),
+                    questionFormat: getRandomQuestionFormat(questionFormats),
                     hasSeen: false,
                     status: getMemoryStatus(
                         progressByWordId.get(word.id) ?? 0
@@ -632,6 +736,7 @@ export default function LearnPage({
         options,
         optionSeed,
         streak,
+        questionFormats,
         learningModes,
         autoContinue,
         summaryVisible,
@@ -659,6 +764,7 @@ export default function LearnPage({
                 options,
                 option_seed: optionSeed,
                 streak,
+                question_formats: questionFormats,
                 learning_modes: learningModes,
                 auto_continue: autoContinue,
                 summary_visible: summaryVisible,
@@ -683,6 +789,7 @@ export default function LearnPage({
         options,
         optionSeed,
         streak,
+        questionFormats,
         learningModes,
         autoContinue,
         summaryVisible,
@@ -690,6 +797,12 @@ export default function LearnPage({
         setUpdatedAt,
         id,
     ])
+
+    useEffect(() => {
+        setTypedAnswer("")
+        setAnswerEvaluation(null)
+        setPendingAnswerResult(null)
+    }, [currentWord?.id, currentWord?.questionType, currentWord?.questionFormat])
 
     useEffect(() => {
         if (!showAnswer || !autoPlayAudio || !currentWord || !currentAnswerKey) {
@@ -804,6 +917,7 @@ export default function LearnPage({
         const catchUpQueue = shuffleWords(practiceWords).map((word) => ({
             ...word,
             questionType: getRandomQuestionType(learningModes),
+            questionFormat: getRandomQuestionFormat(questionFormats),
         }))
 
         setQueue(catchUpQueue)
@@ -818,6 +932,13 @@ export default function LearnPage({
     }
 
     const finishQuestionStep = () => {
+        if (pendingAnswerResult) {
+            void updateSpacedRepetition(
+                pendingAnswerResult.wordId,
+                pendingAnswerResult.isCorrect
+            )
+        }
+
         const nextQuestionIndex = questionIndexInSection + 1
         const nextQuestionsAnswered = questionsAnswered + 1
         const nextSectionCompleted = nextQuestionIndex >= currentSectionSize
@@ -857,6 +978,7 @@ export default function LearnPage({
             newQueue.splice(insertIndex, 0, {
                 ...current,
                 questionType: getRandomQuestionType(learningModes),
+                questionFormat: getRandomQuestionFormat(questionFormats),
             })
 
             return newQueue
@@ -868,6 +990,9 @@ export default function LearnPage({
         setOptionSeed((prev) => prev + 1)
         setSelectedAnswer(null)
         setShowAnswer(false)
+        setTypedAnswer("")
+        setAnswerEvaluation(null)
+        setPendingAnswerResult(null)
 
         if (nextSectionCompleted) {
             setSectionIndex(nextSectionIndex)
@@ -904,48 +1029,126 @@ export default function LearnPage({
         setQuestionIndexInSection(nextQuestionIndex)
     }
 
-    const handleWordResult = (isCorrect: boolean) => {
+    const applyWordResult = (isCorrect: boolean) => {
         if (!currentWord) {
             return
         }
 
-        setQueue((prev) => {
-            const updatedWords = prev.map((word) => {
-                if (word.id !== currentWord.id) {
-                    return word
-                }
+        const baselineStrength = currentWord.memoryStrength
+        const nextStrength = isCorrect
+            ? baselineStrength < 0
+                ? 1
+                : clampMemoryStrength(baselineStrength + 1)
+            : baselineStrength <= 0
+            ? -1
+            : clampMemoryStrength(baselineStrength - 2)
+        const nextCorrectCount = correctCount + (isCorrect ? 1 : 0)
+        const nextWrongCount = wrongCount + (isCorrect ? 0 : 1)
+        const nextStreak = isCorrect ? streak + 1 : 0
 
-                const nextStrength = isCorrect
-                    ? word.memoryStrength < 0
-                        ? 1
-                        : clampMemoryStrength(word.memoryStrength + 1)
-                    : word.memoryStrength <= 0
-                    ? -1
-                    : clampMemoryStrength(word.memoryStrength - 2)
-
-                void updateSpacedRepetition(currentWord.id, isCorrect)
-
-                return {
-                    ...word,
-                    hasSeen: true,
-                    memoryStrength: nextStrength,
-                    status: getMemoryStatus(nextStrength),
-                    questionType: word.questionType,
-                }
-            })
-
-            setAllWords((prevAllWords) =>
-                prevAllWords.map((word) => {
-                    const updated = updatedWords.find(
-                        (candidate) => candidate.id === word.id
-                    )
-
-                    return updated || word
-                })
+        setQueue((prev) =>
+            prev.map((word) =>
+                word.id === currentWord.id
+                    ? {
+                          ...word,
+                          hasSeen: true,
+                          memoryStrength: nextStrength,
+                          status: getMemoryStatus(nextStrength),
+                      }
+                    : word
             )
+        )
 
-            return updatedWords
-        })
+        setAllWords((prevAllWords) =>
+            prevAllWords.map((word) =>
+                word.id === currentWord.id
+                    ? {
+                          ...word,
+                          hasSeen: true,
+                          memoryStrength: nextStrength,
+                          status: getMemoryStatus(nextStrength),
+                      }
+                    : word
+            )
+        )
+
+        setCorrectCount(nextCorrectCount)
+        setWrongCount(nextWrongCount)
+        setStreak(nextStreak)
+
+        return {
+            baselineStrength,
+            baselineCorrectCount: correctCount,
+            baselineWrongCount: wrongCount,
+            baselineStreak: streak,
+            isCorrect,
+        }
+    }
+
+    const setDisplayedResult = (isCorrect: boolean) => {
+        if (!currentWord) {
+            return
+        }
+
+        const nextStrength = isCorrect
+            ? currentWord.memoryStrength < 0
+                ? 1
+                : clampMemoryStrength(currentWord.memoryStrength + 1)
+            : currentWord.memoryStrength <= 0
+            ? -1
+            : clampMemoryStrength(currentWord.memoryStrength - 2)
+
+        setQueue((prev) =>
+            prev.map((word) =>
+                word.id === currentWord.id
+                    ? {
+                          ...word,
+                          hasSeen: true,
+                          memoryStrength: nextStrength,
+                          status: getMemoryStatus(nextStrength),
+                      }
+                    : word
+            )
+        )
+
+        setAllWords((prevAllWords) =>
+            prevAllWords.map((word) =>
+                word.id === currentWord.id
+                    ? {
+                          ...word,
+                          hasSeen: true,
+                          memoryStrength: nextStrength,
+                          status: getMemoryStatus(nextStrength),
+                      }
+                    : word
+            )
+        )
+
+        setCorrectCount((prev) =>
+            pendingAnswerResult?.baselineCorrectCount !== undefined
+                ? pendingAnswerResult.baselineCorrectCount + (isCorrect ? 1 : 0)
+                : prev
+        )
+        setWrongCount((prev) =>
+            pendingAnswerResult?.baselineWrongCount !== undefined
+                ? pendingAnswerResult.baselineWrongCount + (isCorrect ? 0 : 1)
+                : prev
+        )
+        setStreak((prev) =>
+            pendingAnswerResult?.baselineStreak !== undefined
+                ? isCorrect
+                    ? pendingAnswerResult.baselineStreak + 1
+                    : 0
+                : prev
+        )
+        setPendingAnswerResult((prev) =>
+            prev
+                ? {
+                      ...prev,
+                      isCorrect,
+                  }
+                : prev
+        )
     }
 
     const handleAnswer = (answer: string) => {
@@ -953,27 +1156,64 @@ export default function LearnPage({
             return
         }
 
-        const isCorrect = answer === correctAnswer
+        const evaluation =
+            currentWord.questionFormat === "fill"
+                ? evaluateTypedAnswer(answer, correctAnswer)
+                : normalizeAnswer(answer) === normalizeAnswer(correctAnswer)
+                ? "correct"
+                : "wrong"
+        const isCorrect = evaluation !== "wrong"
+        const result = applyWordResult(isCorrect)
 
         setSelectedAnswer(answer)
         setShowAnswer(true)
-        handleWordResult(isCorrect)
+        setAnswerEvaluation(evaluation)
+        if (result) {
+            setPendingAnswerResult({
+                wordId: currentWord.id,
+                baselineStrength: result.baselineStrength,
+                baselineCorrectCount: result.baselineCorrectCount,
+                baselineWrongCount: result.baselineWrongCount,
+                baselineStreak: result.baselineStreak,
+                isCorrect,
+                evaluation,
+            })
+        }
 
         if (isCorrect) {
             navigator.vibrate?.(30)
-            setCorrectCount((prev) => prev + 1)
-            setStreak((prev) => prev + 1)
 
-            if (autoContinue) {
+            if (autoContinue && evaluation === "correct") {
                 autoAdvanceTimeoutRef.current = window.setTimeout(() => {
                     finishQuestionStep()
                 }, 700)
             }
         } else {
             navigator.vibrate?.([50, 30, 50])
-            setWrongCount((prev) => prev + 1)
-            setStreak(0)
         }
+    }
+
+    const handleFillSubmit = () => {
+        if (!typedAnswer.trim()) {
+            return
+        }
+
+        handleAnswer(typedAnswer)
+    }
+
+    const markCurrentAnswerAs = (isCorrect: boolean) => {
+        if (!pendingAnswerResult) {
+            return
+        }
+
+        setDisplayedResult(isCorrect)
+        setAnswerEvaluation((prev) => {
+            if (isCorrect) {
+                return prev === "partial" ? "partial" : "correct"
+            }
+
+            return "wrong"
+        })
     }
 
     const handleDontKnow = () => {
@@ -983,20 +1223,35 @@ export default function LearnPage({
 
         setShowAnswer(true)
         setSelectedAnswer(null)
-        setStreak(0)
-        setWrongCount((prev) => prev + 1)
-        handleWordResult(false)
+        setTypedAnswer("")
+        setAnswerEvaluation("wrong")
+        const result = applyWordResult(false)
+        if (result) {
+            setPendingAnswerResult({
+                wordId: currentWord.id,
+                baselineStrength: result.baselineStrength,
+                baselineCorrectCount: result.baselineCorrectCount,
+                baselineWrongCount: result.baselineWrongCount,
+                baselineStreak: result.baselineStreak,
+                isCorrect: false,
+                evaluation: "wrong",
+            })
+        }
     }
 
     const applyLearningSettings = () => {
         const modeChanged =
             JSON.stringify(learningModes) !==
             JSON.stringify(tempLearningModes)
+        const formatChanged =
+            JSON.stringify(questionFormats) !==
+            JSON.stringify(tempQuestionFormats)
 
         setLearningModes(tempLearningModes)
+        setQuestionFormats(tempQuestionFormats)
         setAutoContinue(tempAutoContinue)
 
-        if (!modeChanged) {
+        if (!modeChanged && !formatChanged) {
             setSettingsVisible(false)
             return
         }
@@ -1009,11 +1264,13 @@ export default function LearnPage({
         const randomized = shuffleWords(allWords).map((word) => ({
             ...word,
             questionType: getRandomQuestionType([...tempLearningModes]),
+            questionFormat: getRandomQuestionFormat([...tempQuestionFormats]),
         }))
 
         setQueue(randomized)
         setSelectedAnswer(null)
         setShowAnswer(false)
+        setTypedAnswer("")
         setSettingsVisible(false)
         lastAutoPlayedKeyRef.current = null
         setOptions([])
@@ -1027,12 +1284,14 @@ export default function LearnPage({
             hasSeen: false,
             status: getMemoryStatus(0),
             questionType: getRandomQuestionType(learningModes),
+            questionFormat: getRandomQuestionFormat(questionFormats),
         }))
 
         setQueue(resetQueue)
         setAllWords(resetQueue)
         setSelectedAnswer(null)
         setShowAnswer(false)
+        setTypedAnswer("")
         setCorrectCount(0)
         setWrongCount(0)
         setStreak(0)
@@ -1050,6 +1309,7 @@ export default function LearnPage({
         setSummaryVisible(false)
         setSelectedAnswer(null)
         setShowAnswer(false)
+        setTypedAnswer("")
         lastAutoPlayedKeyRef.current = null
     }
 
@@ -1377,9 +1637,9 @@ export default function LearnPage({
                         <div className="mx-auto max-w-5xl rounded-[2.25rem] border border-[#eadccf] bg-white p-6 shadow-[0_24px_60px_rgba(79,56,31,0.08)] md:p-8">
                             <div className="mb-5 flex flex-wrap items-center justify-between gap-3">
                                 <div className="rounded-full bg-[#fff1e5] px-4 py-2 text-xs font-bold uppercase tracking-[0.2em] text-[#b45309]">
-                                    {currentWord.questionType === "reverse"
-                                        ? "Meaning -> Word"
-                                        : "Word -> Meaning"}
+                                    {currentWord.questionType === "definition"
+                                        ? "Nghĩa -> Thuật ngữ"
+                                        : "Thuật ngữ -> Nghĩa"}
                                 </div>
 
                                 <div className="flex items-center gap-2">
@@ -1430,6 +1690,7 @@ export default function LearnPage({
                                     <button
                                         onClick={() => {
                                             setTempLearningModes(learningModes)
+                                            setTempQuestionFormats(questionFormats)
                                             setTempAutoContinue(autoContinue)
                                             setSettingsVisible(true)
                                         }}
@@ -1462,33 +1723,79 @@ export default function LearnPage({
                             </div>
 
                             <h2 className="mt-8 text-center text-3xl font-black leading-tight text-gray-900 md:mt-10 md:text-5xl">
-                                {currentWord.questionType === "reverse"
+                                {currentWord.questionType === "definition"
                                     ? currentWord.meaning
                                     : currentWord.word}
                             </h2>
 
-                            <div className="mt-8 grid grid-cols-1 gap-3 sm:grid-cols-2 sm:gap-4">
-                                {options.map((option, index) => {
-                                    const isCorrectOption = option === correctAnswer
-                                    const isSelected = selectedAnswer === option
+                            {currentWord.questionFormat === "fill" ? (
+                                <div className="mt-8 space-y-4">
+                                    <div className="rounded-[1.6rem] border border-[#eadccf] bg-[#fffdfa] p-4">
+                                        <p className="mb-3 text-sm font-semibold text-gray-500">
+                                            {currentWord.questionType === "definition"
+                                                ? "Điền thuật ngữ"
+                                                : "Điền nghĩa"}
+                                        </p>
+                                        <input
+                                            value={typedAnswer}
+                                            onChange={(event) =>
+                                                setTypedAnswer(event.target.value)
+                                            }
+                                            onKeyDown={(event) => {
+                                                if (event.key === "Enter") {
+                                                    event.preventDefault()
+                                                    handleFillSubmit()
+                                                }
+                                            }}
+                                            disabled={showAnswer}
+                                            placeholder={
+                                                currentWord.questionType === "definition"
+                                                    ? "Nhập thuật ngữ đúng"
+                                                    : "Nhập nghĩa đúng"
+                                            }
+                                            className="w-full rounded-2xl border border-[#eadccf] bg-white px-4 py-4 text-base font-semibold text-[#2d241d] outline-none transition focus:border-[#d96d32]"
+                                        />
+                                    </div>
 
-                                    return (
+                                    {!showAnswer ? (
                                         <button
-                                            key={`${option}-${index}`}
-                                            onClick={() => handleAnswer(option)}
-                                            className={`min-h-[76px] w-full rounded-[1.6rem] border p-5 text-left text-base font-bold leading-snug transition-all duration-300 active:scale-[0.98] ${
-                                                showAnswer && isCorrectOption
-                                                    ? "border-green-500 bg-green-50"
-                                                    : showAnswer && isSelected && !isCorrectOption
-                                                    ? "border-red-500 bg-red-50"
-                                                    : "border-[#eadccf] bg-[#fffdfa] hover:border-[#d7b89a] hover:bg-[#fff8f1]"
-                                            }`}
+                                            onClick={handleFillSubmit}
+                                            disabled={!typedAnswer.trim()}
+                                            className="h-14 w-full rounded-2xl bg-[#1f1a17] text-lg font-bold text-white transition hover:bg-[#2d241f] disabled:cursor-not-allowed disabled:bg-gray-300"
                                         >
-                                            {option}
+                                            Kiểm tra
                                         </button>
-                                    )
-                                })}
-                            </div>
+                                    ) : null}
+                                </div>
+                            ) : (
+                                <div className="mt-8 grid grid-cols-1 gap-3 sm:grid-cols-2 sm:gap-4">
+                                    {options.map((option, index) => {
+                                        const isCorrectOption =
+                                            normalizeAnswer(option) ===
+                                            normalizeAnswer(correctAnswer)
+                                        const isSelected =
+                                            selectedAnswer === option
+
+                                        return (
+                                            <button
+                                                key={`${option}-${index}`}
+                                                onClick={() => handleAnswer(option)}
+                                                className={`min-h-[76px] w-full rounded-[1.6rem] border p-5 text-left text-base font-bold leading-snug transition-all duration-300 active:scale-[0.98] ${
+                                                    showAnswer && isCorrectOption
+                                                        ? "border-green-500 bg-green-50"
+                                                        : showAnswer &&
+                                                          isSelected &&
+                                                          !isCorrectOption
+                                                        ? "border-red-500 bg-red-50"
+                                                        : "border-[#eadccf] bg-[#fffdfa] hover:border-[#d7b89a] hover:bg-[#fff8f1]"
+                                                }`}
+                                            >
+                                                {option}
+                                            </button>
+                                        )
+                                    })}
+                                </div>
+                            )}
 
                             {showAnswer ? (
                                 <>
@@ -1503,31 +1810,48 @@ export default function LearnPage({
 
                                     <div
                                         className={`relative mt-6 rounded-[1.75rem] border p-5 ${
-                                            selectedAnswer === correctAnswer
+                                            answerEvaluation === "correct"
                                                 ? "border-green-300 bg-green-50"
+                                                : answerEvaluation === "partial"
+                                                ? "border-yellow-300 bg-yellow-50"
                                                 : "border-red-300 bg-red-50"
                                         }`}
                                     >
                                         <div className="mt-2 flex items-center gap-4">
                                             <div
                                                 className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl ${
-                                                    selectedAnswer === correctAnswer
+                                                    answerEvaluation === "correct"
                                                         ? "bg-green-100"
+                                                        : answerEvaluation === "partial"
+                                                        ? "bg-yellow-100"
                                                         : "bg-red-100"
                                                 }`}
                                             >
-                                                {selectedAnswer === correctAnswer ? (
+                                                {answerEvaluation === "correct" ? (
                                                     <Check className="h-5 w-5 text-green-600" />
+                                                ) : answerEvaluation === "partial" ? (
+                                                    <span className="text-lg font-black text-yellow-700">
+                                                        !
+                                                    </span>
                                                 ) : (
                                                     <X className="h-5 w-5 text-red-600" />
                                                 )}
                                             </div>
 
                                             <div className="flex-1">
-                                                {selectedAnswer === correctAnswer ? (
+                                                {answerEvaluation === "correct" ? (
                                                     <h3 className="text-xl font-black text-green-700">
                                                         Chính xác
                                                     </h3>
+                                                ) : answerEvaluation === "partial" ? (
+                                                    <div>
+                                                        <h3 className="text-xl font-black text-yellow-700">
+                                                            Đúng một phần
+                                                        </h3>
+                                                        <p className="mt-1 text-sm font-semibold text-yellow-800">
+                                                            Hệ thống vẫn tính đúng và cộng điểm như bình thường.
+                                                        </p>
+                                                    </div>
                                                 ) : (
                                                     <p className="text-lg font-black text-red-700">
                                                         Đáp án đúng:
@@ -1612,6 +1936,25 @@ export default function LearnPage({
                                                     </p>
                                                 </div>
                                             ) : null}
+
+                                            <div className="mt-5 flex flex-wrap gap-3">
+                                                <button
+                                                    onClick={() =>
+                                                        markCurrentAnswerAs(true)
+                                                    }
+                                                    className="h-11 rounded-2xl bg-[#fff4d6] px-5 font-bold text-[#9a5b00] transition hover:bg-[#ffe8ad]"
+                                                >
+                                                    Tôi đúng
+                                                </button>
+                                                <button
+                                                    onClick={() =>
+                                                        markCurrentAnswerAs(false)
+                                                    }
+                                                    className="h-11 rounded-2xl bg-[#fef2f2] px-5 font-bold text-red-600 transition hover:bg-red-100"
+                                                >
+                                                    Tôi sai
+                                                </button>
+                                            </div>
                                         </div>
                                     </div>
                                 </>
@@ -1692,7 +2035,7 @@ export default function LearnPage({
                             Cài đặt học tập
                         </h2>
                         <p className="mt-2 font-medium leading-relaxed text-gray-500">
-                            ùy chỉnh cách học và cách kiểm tra.
+                            Tùy chỉnh cách học và cách kiểm tra.
                         </p>
 
                         <div className="mt-8">
@@ -1704,11 +2047,11 @@ export default function LearnPage({
                                 {[
                                     {
                                         key: "term",
-                                        label: "Hoi tu, tra loi nghia",
+                                        label: "Hỏi từ, trả lời nghĩa",
                                     },
                                     {
                                         key: "definition",
-                                        label: "Hoi nghia, tra loi tu",
+                                        label: "Hỏi nghĩa, trả lời từ",
                                     },
                                 ].map((mode) => (
                                     <button
@@ -1744,6 +2087,62 @@ export default function LearnPage({
                                         }`}
                                     >
                                         {mode.label}
+                                    </button>
+                                ))}
+                            </div>
+                        </div>
+
+                        <div className="mt-8">
+                            <p className="mb-4 text-lg font-black">
+                                Chế độ câu hỏi
+                            </p>
+
+                            <div className="grid gap-3">
+                                {[
+                                    {
+                                        key: "fill",
+                                        label: "Điền từ",
+                                    },
+                                    {
+                                        key: "mcq",
+                                        label: "Trắc nghiệm 4 đáp án",
+                                    },
+                                ].map((format) => (
+                                    <button
+                                        key={format.key}
+                                        onClick={() => {
+                                            setTempQuestionFormats((prev) => {
+                                                const exists = prev.includes(
+                                                    format.key as "mcq" | "fill"
+                                                )
+
+                                                if (exists && prev.length === 1) {
+                                                    return prev
+                                                }
+
+                                                return exists
+                                                    ? prev.filter(
+                                                          (item) =>
+                                                              item !==
+                                                              format.key
+                                                      )
+                                                    : [
+                                                          ...prev,
+                                                          format.key as
+                                                              | "mcq"
+                                                              | "fill",
+                                                      ]
+                                            })
+                                        }}
+                                        className={`w-full rounded-[1.35rem] border p-4 text-left font-bold transition ${
+                                            tempQuestionFormats.includes(
+                                                format.key as "mcq" | "fill"
+                                            )
+                                                ? "border-[#b45309] bg-[#fff1e5] text-[#8a470c]"
+                                                : "border-[#eadccf] bg-[#fffdfa] text-[#2d241d] hover:bg-[#fff8f1]"
+                                        }`}
+                                    >
+                                        {format.label}
                                     </button>
                                 ))}
                             </div>

@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from "react"
 import { useRouter } from "next/navigation"
 import { X, LogOut, Pencil, ImagePlus, Upload, Crown } from "lucide-react"
 import { supabase } from "@/lib/supabase"
+import { formatPremiumExpiry, getEffectiveRole } from "@/lib/subscription"
 
 type ProfileUser = {
   id?: string
@@ -11,6 +12,7 @@ type ProfileUser = {
   full_name?: string | null
   avatar_url?: string | null
   role?: string | null
+  premium_expires_at?: string | null
   user_metadata?: {
     full_name?: string | null
     avatar_url?: string | null
@@ -23,6 +25,7 @@ type ProfileRow = {
   username?: string | null
   avatar_url?: string | null
   role?: string | null
+  premium_expires_at?: string | null
 }
 
 type Props = {
@@ -54,6 +57,7 @@ export default function ProfileModal({
   const [name, setName] = useState("")
   const [avatarUrl, setAvatarUrl] = useState("")
   const [rank, setRank] = useState("MEMBER")
+  const [premiumExpiresAt, setPremiumExpiresAt] = useState("")
   const [saving, setSaving] = useState(false)
   const [uploadingAvatar, setUploadingAvatar] = useState(false)
   const fileInputRef = useRef<HTMLInputElement | null>(null)
@@ -64,7 +68,7 @@ export default function ProfileModal({
 
       const { data } = await supabase
         .from("profiles")
-        .select("id, username, avatar_url, role")
+        .select("id, username, avatar_url, role, premium_expires_at")
         .eq("id", user.id)
         .maybeSingle()
 
@@ -80,7 +84,8 @@ export default function ProfileModal({
           user?.user_metadata?.avatar_url ||
           ""
       )
-      setRank(profile?.role || "MEMBER")
+      setRank(getEffectiveRole(profile?.role, profile?.premium_expires_at))
+      setPremiumExpiresAt(profile?.premium_expires_at || "")
     }
 
     loadProfile()
@@ -100,7 +105,7 @@ export default function ProfileModal({
         email: user.email,
         username: next.username,
         avatar_url: next.avatar_url,
-        role: next.role,
+        role: user?.role === "ADMIN" ? "ADMIN" : next.role,
       })
 
     if (!error) {
@@ -108,7 +113,8 @@ export default function ProfileModal({
         ...user,
         full_name: next.username,
         avatar_url: next.avatar_url,
-        role: next.role,
+        role: user?.role === "ADMIN" ? "ADMIN" : next.role,
+        premium_expires_at: premiumExpiresAt || null,
         user_metadata: {
           ...(user.user_metadata || {}),
           full_name: next.username,
@@ -145,6 +151,7 @@ export default function ProfileModal({
         full_name: name,
         avatar_url: avatarUrl,
         role: rank,
+        premium_expires_at: premiumExpiresAt || null,
         user_metadata: nextMetadata,
       })
       onClose()

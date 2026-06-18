@@ -18,6 +18,7 @@ import {
 } from "lucide-react"
 import { useEffect, useState } from "react"
 import { supabase } from "@/lib/supabase"
+import { getEffectiveRole } from "@/lib/subscription"
 import ProfileModal from "./profile-modal"
 
 type ProfileUser = {
@@ -31,6 +32,7 @@ type ProfileUser = {
   full_name?: string | null
   avatar_url?: string | null
   role?: string | null
+  premium_expires_at?: string | null
   [key: string]: unknown
 }
 
@@ -68,15 +70,21 @@ export default function DashboardLayout({
 
       const { data: profile } = await supabase
         .from("profiles")
-        .select("id, username, avatar_url, role")
+        .select("id, username, avatar_url, role, premium_expires_at")
         .eq("id", session.user.id)
         .maybeSingle()
+
+      const effectiveRole = getEffectiveRole(
+        profile?.role,
+        profile?.premium_expires_at
+      )
 
       setUser({
         ...session.user,
         full_name: profile?.username || session.user.user_metadata?.full_name || "",
         avatar_url: profile?.avatar_url || session.user.user_metadata?.avatar_url || "",
-        role: profile?.role || "MEMBER",
+        role: effectiveRole,
+        premium_expires_at: profile?.premium_expires_at || null,
       })
 
       setLoading(false)
@@ -89,8 +97,15 @@ export default function DashboardLayout({
     return (
       <main className="flex min-h-screen items-center justify-center bg-[radial-gradient(circle_at_top,#fff8e8_0%,#f7f1e8_38%,#efe7da_100%)]">
         <div className="dashboard-loading">
-          <div className="dashboard-spinner" />
-          <p className="dashboard-loading-text">Dang tai khong gian hoc tap</p>
+          <div className="dashboard-loading-logo-wrap">
+            <div className="dashboard-spinner" />
+            <img
+              src="/logo.png"
+              alt="NSVD Vocab logo"
+              className="dashboard-loading-logo"
+            />
+          </div>
+          <p className="dashboard-loading-text">Đang tải không gian học tập</p>
         </div>
       </main>
     )
@@ -102,7 +117,7 @@ export default function DashboardLayout({
     { title: "Kho lưu trữ", icon: Folder, path: "/folders" },
     { title: "Nhóm từ vựng", icon: Layers3, path: "/groups" },
     { title: "Community", icon: Globe, path: "/community" },
-    { title: "Pricing", icon: DollarSign, path: "/pricing" },
+    { title: "Nâng cấp", icon: DollarSign, path: "/upgrade" },
     { title: "Cài đặt", icon: Settings, path: "/settings" },
   ]
 

@@ -16,7 +16,7 @@ export default function LoadingScreen({
         <div className="flex h-24 w-24 items-center justify-center rounded-[28px] border border-white/80 bg-white/85 shadow-[0_20px_50px_rgba(79,56,31,0.12)] backdrop-blur-xl animate-[float_3s_ease-in-out_infinite]">
           <img
             src="/logo.png"
-            alt="Logo"
+            alt="NSVD Vocab logo"
             className="h-12 w-12 object-contain drop-shadow-[0_0_18px_rgba(217,109,50,0.18)]"
           />
         </div>

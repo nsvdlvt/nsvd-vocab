@@ -20,7 +20,8 @@
     "react": "19.2.4",
     "react-dom": "19.2.4",
     "react-hot-toast": "^2.6.0",
-    "react-pdf": "^10.4.1"
+    "react-pdf": "^10.4.1",
+    "sepay-pg-node": "^1.0.0"
   },
   "devDependencies": {
     "@tailwindcss/postcss": "^4",

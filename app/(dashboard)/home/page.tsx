@@ -19,6 +19,7 @@ import { GeminiAssistant } from "@/components/dashboard/gemini-assistant"
 import { supabase } from "@/lib/supabase"
 import { getEffectiveReviewDate, isDueForReviewToday, startOfDay } from "@/lib/review-due"
 import { MASTERED_LEVEL, SRS_REVIEW_LEVEL } from "@/lib/spaced-repetition"
+import { getEffectiveRole } from "@/lib/subscription"
 import { formatRelativeStudyTime, getLatestTimestamp } from "@/lib/time"
 
 type Role = "ADMIN" | "PREMIUM" | "MEMBER" | string
@@ -124,12 +125,14 @@ export default function HomePage() {
 
       const { data: profile } = await supabase
         .from("profiles")
-        .select("username, role")
+        .select("username, role, premium_expires_at")
         .eq("id", user.id)
         .maybeSingle()
 
       setName(profile?.username || user.user_metadata?.full_name || user.email || "bạn")
-      setRole((profile?.role as Role) || "MEMBER")
+      setRole(
+        getEffectiveRole(profile?.role, profile?.premium_expires_at) as Role
+      )
 
       const { data: setsData } = await supabase
         .from("vocab_sets")
