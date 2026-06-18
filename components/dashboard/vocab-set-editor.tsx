@@ -566,7 +566,7 @@ export function VocabSetEditor(props: EditorMode) {
               <div>
                 <p className="inline-flex items-center gap-2 rounded-full bg-[#fff1dd] px-3 py-2 text-xs font-black uppercase tracking-[0.16em] text-[#c96d35]">
                   <Import className="h-3.5 w-3.5" />
-                  ✨ Thêm từ vựng nhanh
+                  Thêm từ vựng nhanh
                 </p>
                 <h2 className="mt-3 text-3xl font-black text-[#241c17]">Nhập từ vựng nhanh</h2>
               </div>
@@ -744,7 +744,7 @@ word	meaning	ipa	word type	example	synonyms`}
                   className="inline-flex h-12 items-center justify-center gap-2 rounded-2xl bg-[#1f1a17] px-5 text-sm font-bold text-[#fff8f0] transition hover:bg-black"
                 >
                   <Import className="h-4 w-4" />
-                  ✨ Thêm từ vựng nhanh
+                  Thêm từ vựng nhanh
                 </button>
 
                 <button
@@ -756,7 +756,7 @@ word	meaning	ipa	word type	example	synonyms`}
                   }`}
                 >
                   {isPublic ? <Globe className="h-4 w-4" /> : <Lock className="h-4 w-4" />}
-                  {isPublic ? "🌍 Công khai" : "🔒 Riêng tư"}
+                  {isPublic ? "Công khai" : "Riêng tư"}
                 </button>
               </div>
             </div>
@@ -830,7 +830,7 @@ word	meaning	ipa	word type	example	synonyms`}
                   className="inline-flex h-12 items-center justify-center gap-2 rounded-2xl bg-[#d96d32] px-5 text-sm font-bold text-white transition hover:bg-[#c25f29]"
                 >
                   <Plus className="h-4 w-4" />
-                  + Thêm từ
+                  Thêm từ
                 </button>
                 <button
                   onClick={resetWords}
@@ -838,7 +838,7 @@ word	meaning	ipa	word type	example	synonyms`}
                   className="inline-flex h-12 items-center justify-center gap-2 rounded-2xl border border-[#e2d2bf] bg-white px-5 text-sm font-bold text-[#2d241d] transition hover:bg-[#fff8f1] disabled:cursor-not-allowed disabled:opacity-50"
                 >
                   <Trash2 className="h-4 w-4" />
-                  🗑 Xóa toàn bộ
+                  Xóa toàn bộ
                 </button>
               </div>
             </div>
@@ -923,7 +923,7 @@ word	meaning	ipa	word type	example	synonyms`}
                 disabled={saving || !hasWords || !hasChanges}
                 className="flex h-14 flex-1 items-center justify-center rounded-2xl bg-[#1f1a17] text-base font-black text-white transition hover:bg-black disabled:cursor-not-allowed disabled:bg-[#b8afa6]"
               >
-                {saving ? "Đang lưu..." : "💾 Lưu bộ từ"}
+                {saving ? "Đang lưu..." : "Lưu bộ từ"}
               </button>
 
               <button

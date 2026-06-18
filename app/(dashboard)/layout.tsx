@@ -219,15 +219,22 @@ export default function DashboardLayout({
         />
       )}
 
-      <div className="flex-1 lg:ml-[280px]">
-        <header className="sticky top-0 z-30 flex items-center justify-between border-b border-[#decebd] bg-[#f6efe4]/88 px-5 py-4 backdrop-blur-xl lg:hidden">
-          <button onClick={() => setSidebarOpen(true)}>
+      <div className="min-w-0 flex-1 lg:ml-[280px]">
+        <header className="sticky top-0 z-30 border-b border-[#decebd] bg-[#f6efe4]/88 px-5 py-4 backdrop-blur-xl lg:hidden">
+          <div className="relative flex items-center justify-between">
+            <button
+              onClick={() => setSidebarOpen(true)}
+              className="flex h-10 w-10 items-center justify-center"
+            >
             <Menu size={30} className="text-[#241c17]" />
-          </button>
+            </button>
 
-          <h1 className="text-xl font-black text-[#241c17]">NSVD Vocab</h1>
+            <h1 className="pointer-events-none absolute left-1/2 -translate-x-1/2 text-center text-xl font-black text-[#241c17]">
+              NSVD Vocab
+            </h1>
 
-          <div className="w-8" />
+            <div className="h-10 w-10 shrink-0" />
+          </div>
         </header>
 
         <main>{children}</main>
