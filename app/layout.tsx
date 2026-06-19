@@ -14,17 +14,17 @@ const defaultSiteUrl = getDefaultSiteUrl()
 
 const metadataContent = {
   title: {
-    default: "NSVD Vocab | Hoc tu vung tieng Anh thong minh",
+    default: "NSVD Vocab | Học từ vựng tiếng Anh thông minh",
     template: "%s | NSVD Vocab",
   },
   description:
-    "NSVD Vocab giup ban hoc tu vung tieng Anh bang flashcard, quiz, spaced repetition va AI de nho lau hon, hoc co lo trinh hon.",
+    "NSVD Vocab giúp bạn học từ vựng tiếng Anh bằng flashcard, quiz, spaced repetition và AI để nhớ lâu hơn, học có lộ trình hơn.",
   keywords: [
-    "hoc tu vung tieng Anh",
-    "flashcard tieng Anh",
+    "học từ vựng tiếng Anh",
+    "flashcard tiếng Anh",
     "spaced repetition",
-    "quiz tu vung",
-    "ung dung hoc tieng Anh",
+    "quiz từ vựng",
+    "ứng dụng học tiếng Anh",
     "NSVD Vocab",
   ],
   applicationName: "NSVD Vocab",
@@ -35,9 +35,9 @@ const metadataContent = {
     type: "website" as const,
     locale: "vi_VN",
     siteName: "NSVD Vocab",
-    title: "NSVD Vocab | Hoc tu vung tieng Anh thong minh",
+    title: "NSVD Vocab | Học từ vựng tiếng Anh thông minh",
     description:
-      "Hoc tu vung tieng Anh bang flashcard, quiz, spaced repetition va AI trong mot lo trinh ro rang.",
+      "Học từ vựng tiếng Anh bằng flashcard, quiz, spaced repetition và AI trong một lộ trình rõ ràng.",
     images: [
       {
         url: "/logo.png",
@@ -49,9 +49,9 @@ const metadataContent = {
   },
   twitter: {
     card: "summary_large_image" as const,
-    title: "NSVD Vocab | Hoc tu vung tieng Anh thong minh",
+    title: "NSVD Vocab | Học từ vựng tiếng Anh thông minh",
     description:
-      "Hoc tu vung bang flashcard, quiz, spaced repetition va AI de nho lau hon.",
+      "Học từ vựng bằng flashcard, quiz, spaced repetition và AI để nhớ lâu hơn.",
     images: ["/logo.png"],
   },
   category: "education",

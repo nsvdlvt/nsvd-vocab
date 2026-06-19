@@ -381,6 +381,7 @@ export default function LearnPage({
     const wordsBelowTargetCount = learningCount + unlearnedCount
 
     const currentWord = queue[0]
+    const hasActiveQuestion = Boolean(currentWord)
     const correctAnswer =
         currentWord?.questionType === "definition"
             ? currentWord.word
@@ -400,28 +401,32 @@ export default function LearnPage({
     const allWordsAtTarget =
         totalWords > 0 && wordsBelowTargetCount === 0
     const allWordsMastered = allWordsAtTarget && minimumPracticeMet
-    const effectiveSessionCompleted = sessionCompleted || allWordsMastered
-    const activeQueueLength = allWordsMastered ? 0 : queue.length
-    const completedSections = sectionIndex
-    const currentSectionSize = Math.min(
-        SECTION_SIZE,
-        Math.max(SECTION_SIZE, activeQueueLength, 1)
-    )
+    const effectiveSessionCompleted = sessionCompleted
+    const activeQueueLength = sessionCompleted ? 0 : queue.length
     const plannedSections = Math.max(
         MIN_SESSION_SECTIONS,
         Math.ceil(minimumQuestionTarget / SECTION_SIZE)
     )
-    const remainingSections = allWordsMastered
+    const completedSections = Math.min(sectionIndex, plannedSections)
+    const currentSectionSize = Math.min(
+        SECTION_SIZE,
+        Math.max(SECTION_SIZE, activeQueueLength, 1)
+    )
+    const remainingSections = sessionCompleted
         ? 0
-        : Math.max(1, plannedSections - completedSections)
-    const totalSections = allWordsMastered
+        : Math.max(plannedSections - completedSections, 0)
+    const totalSections = sessionCompleted
         ? completedSections
-        : Math.max(plannedSections, completedSections + remainingSections)
-    const visibleSectionCount = allWordsMastered
+        : plannedSections
+    const visibleSectionCount = sessionCompleted
         ? 0
         : Math.min(totalSections, SECTION_PROGRESS_VISIBLE_LIMIT)
+    const visibleSectionStart = Math.max(
+        0,
+        Math.min(completedSections, totalSections - visibleSectionCount)
+    )
     const hiddenSectionCount = Math.max(
-        totalSections - SECTION_PROGRESS_VISIBLE_LIMIT,
+        totalSections - (visibleSectionStart + visibleSectionCount),
         0
     )
     const buildLearningSessionSnapshot = (): LearningSessionSnapshot => ({
@@ -921,7 +926,7 @@ export default function LearnPage({
         }))
 
         setQueue(catchUpQueue)
-        setSectionIndex(totalSections)
+        setSectionIndex((prev) => prev + 1)
         setQuestionIndexInSection(0)
         lastAutoPlayedKeyRef.current = null
         setOptions([])
@@ -956,10 +961,6 @@ export default function LearnPage({
 
             if (!current) {
                 return prev
-            }
-
-            if (current.memoryStrength >= MAX_MEMORY_STRENGTH && nextMinimumPracticeMet) {
-                return rest
             }
 
             const newQueue = [...rest]
@@ -998,7 +999,7 @@ export default function LearnPage({
             setSectionIndex(nextSectionIndex)
             setQuestionIndexInSection(0)
 
-            if (allWordsReachedTarget && nextMinimumPracticeMet) {
+            if (nextSectionIndex >= plannedSections) {
                 setSessionCompleted(true)
                 setSummaryVisible(true)
                 return
@@ -1014,12 +1015,8 @@ export default function LearnPage({
             }
 
             if (queue.length <= 1) {
-                if (hasWordsBelowTarget) {
-                    prepareCatchUpSection()
-                } else {
-                    setSessionCompleted(true)
-                    setSummaryVisible(true)
-                }
+                setSessionCompleted(true)
+                setSummaryVisible(true)
                 return
             }
 
@@ -1277,6 +1274,19 @@ export default function LearnPage({
         setOptionSeed((prev) => prev + 1)
     }
 
+    useEffect(() => {
+        if (loading || summaryVisible || hasActiveQuestion) {
+            return
+        }
+
+        setSessionCompleted(true)
+        setSummaryVisible(true)
+    }, [
+        hasActiveQuestion,
+        loading,
+        summaryVisible,
+    ])
+
     const resetLearningProgress = () => {
         const resetQueue = shuffleWords(allWords).map((word) => ({
             ...word,
@@ -1384,13 +1394,12 @@ export default function LearnPage({
                             const isCollapsedTail =
                                 hiddenSectionCount > 0 &&
                                 index === lastVisibleIndex
-                            const representedSection = isCollapsedTail
-                                ? totalSections - 1
-                                : index
+                            const representedSection =
+                                visibleSectionStart + index
                             const isCompleted =
-                                representedSection < sectionIndex
+                                representedSection < completedSections
                             const isCurrent =
-                                representedSection === sectionIndex
+                                representedSection === completedSections
 
                             return (
                                 <div
@@ -1398,7 +1407,7 @@ export default function LearnPage({
                                     className={`h-3 flex-1 rounded-full transition-all ${
                                         isCompleted
                                             ? "bg-blue-600 shadow-[0_0_18px_rgba(37,99,235,0.3)]"
-                                            : isCurrent
+                                            : isCurrent || isCollapsedTail
                                             ? "bg-blue-200"
                                             : "bg-slate-200"
                                     }`}
@@ -1635,7 +1644,15 @@ export default function LearnPage({
                         </div>
 
                         <div className="mx-auto max-w-5xl rounded-[2.25rem] border border-[#eadccf] bg-white p-6 shadow-[0_24px_60px_rgba(79,56,31,0.08)] md:p-8">
-                            <div className="mb-5 flex flex-wrap items-center justify-between gap-3">
+                            {!currentWord ? (
+                                <div className="py-16 text-center">
+                                    <p className="text-lg font-bold text-gray-500">
+                                        Đang chuẩn bị câu hỏi tiếp theo...
+                                    </p>
+                                </div>
+                            ) : (
+                                <>
+                                    <div className="mb-5 flex flex-wrap items-center justify-between gap-3">
                                 <div className="rounded-full bg-[#fff1e5] px-4 py-2 text-xs font-bold uppercase tracking-[0.2em] text-[#b45309]">
                                     {currentWord.questionType === "definition"
                                         ? "Nghĩa -> Thuật ngữ"
@@ -1863,17 +1880,17 @@ export default function LearnPage({
                                             </div>
                                         </div>
 
-                                        <div className="mt-7 rounded-[1.5rem] bg-white/80 p-5">
-                                            <div className="flex items-start justify-between gap-4">
+                                        <div className="mt-5 rounded-[1.35rem] bg-white/90 p-4">
+                                            <div className="flex items-start justify-between gap-3">
                                                 <div>
                                                     <p className="text-sm font-bold text-gray-400">
                                                         Từ vựng
                                                     </p>
-                                                    <h3 className="mt-1 text-3xl font-black text-gray-900">
+                                                    <h3 className="mt-1 text-[1.8rem] font-black leading-tight text-gray-900">
                                                         {currentWord.word}
                                                     </h3>
 
-                                                    <div className="mt-2 flex items-center gap-3">
+                                                    <div className="mt-2 flex flex-wrap items-center gap-2.5">
                                                         {currentWord.word_type ? (
                                                             <span className="rounded-full bg-blue-50 px-3 py-1 text-xs font-bold uppercase text-blue-600 shadow-sm">
                                                                 {currentWord.word_type}
@@ -1891,9 +1908,9 @@ export default function LearnPage({
                                                 <div className="flex items-center gap-3">
                                                     <button
                                                         onClick={playAudio}
-                                                        className="flex h-10 w-10 items-center justify-center rounded-xl bg-blue-50 transition hover:bg-blue-100"
+                                                        className="flex h-9 w-9 items-center justify-center rounded-xl bg-blue-50 transition hover:bg-blue-100"
                                                     >
-                                                        <Volume2 className="h-5 w-5 text-blue-600" />
+                                                        <Volume2 className="h-4 w-4 text-blue-600" />
                                                     </button>
 
                                                     <button
@@ -1917,44 +1934,25 @@ export default function LearnPage({
                                                 </div>
                                             </div>
 
-                                            <div className="mt-5">
+                                            <div className="mt-4">
                                                 <p className="text-sm font-bold text-gray-400">
                                                     Nghĩa
                                                 </p>
-                                                <p className="mt-1 text-2xl font-black text-gray-900">
+                                                <p className="mt-1 text-xl font-black leading-snug text-gray-900">
                                                     {currentWord.meaning}
                                                 </p>
                                             </div>
 
                                             {currentWord.example ? (
-                                                <div className="mt-5 rounded-2xl bg-white px-4 py-3">
-                                                    <p className="mb-2 text-sm font-bold text-gray-400">
+                                                <div className="mt-4 rounded-2xl bg-[#fffaf6] px-4 py-3">
+                                                    <p className="mb-1 text-sm font-bold text-gray-400">
                                                         Ví dụ
                                                     </p>
-                                                    <p className="italic leading-relaxed text-gray-700">
+                                                    <p className="line-clamp-3 text-sm italic leading-relaxed text-gray-700">
                                                         {currentWord.example}
                                                     </p>
                                                 </div>
                                             ) : null}
-
-                                            <div className="mt-5 flex flex-wrap gap-3">
-                                                <button
-                                                    onClick={() =>
-                                                        markCurrentAnswerAs(true)
-                                                    }
-                                                    className="h-11 rounded-2xl bg-[#fff4d6] px-5 font-bold text-[#9a5b00] transition hover:bg-[#ffe8ad]"
-                                                >
-                                                    Tôi đúng
-                                                </button>
-                                                <button
-                                                    onClick={() =>
-                                                        markCurrentAnswerAs(false)
-                                                    }
-                                                    className="h-11 rounded-2xl bg-[#fef2f2] px-5 font-bold text-red-600 transition hover:bg-red-100"
-                                                >
-                                                    Tôi sai
-                                                </button>
-                                            </div>
                                         </div>
                                     </div>
                                 </>
@@ -1965,6 +1963,8 @@ export default function LearnPage({
                                 >
                                     Tôi không biết
                                 </button>
+                            )}
+                                </>
                             )}
                         </div>
                     </>
